@@ -1,0 +1,12 @@
+# One-command local start (C-25): `docker compose up --build`.
+# Runs fully offline unless you create a .env with real keys.
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - path: .env
+        required: false      # offline mode needs no .env
+    environment:
+      RUN_SCHEDULER: "1"
