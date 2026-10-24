@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "drishti-pipeline"
+version = "0.1.0"
+description = "Drishti geospatial AI pipeline: Sentinel-2 + Prithvi dumpsite detection and fire layer"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=1.26",
+  "shapely>=2.0",
+  "pyproj>=3.6",
+  "rasterio>=1.3",
+  "affine>=2.4",
+  "pillow>=10.0",
+  "pyyaml>=6.0",
+  "httpx>=0.27",
+]
+
+[project.optional-dependencies]
+# Reading imagery from Planetary Computer
+geo = ["pystac-client>=0.8", "planetary-computer>=1.0", "rioxarray>=0.15"]
+# Writing to Supabase
+db = ["supabase>=2.0"]
+# Fine-tuning and running Prithvi (use a GPU runtime such as Colab)
+train = ["terratorch>=1.0", "torch>=2.1"]
+dev = ["pytest>=8.0", "ruff>=0.5"]
+
+[project.scripts]
+drishti-pipeline = "drishti_pipeline.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["drishti_pipeline*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+extend-exclude = ["notebooks"]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+ignore = ["SIM108"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["drishti_pipeline", "conftest"]
