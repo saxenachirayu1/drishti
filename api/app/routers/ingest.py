@@ -84,16 +84,14 @@ def ingest(batch: IngestBatch, actor: str = Depends(ingest_auth)):
         if repo.get_site(det.site_id) is None:
             unknown_sites.append(det.site_id)
             continue
-        repo.upsert_detection(det.model_dump())
+        repo.upsert_detection(det.model_dump(mode="json"))
         wrote["detections"] += 1
 
     for ev in batch.fire_events:
         if repo.get_site(ev.site_id) is None:
             unknown_sites.append(ev.site_id)
             continue
-        payload = ev.model_dump()
-        if payload.get("detected_at") is not None:
-            payload["detected_at"] = payload["detected_at"].isoformat()
+        payload = ev.model_dump(mode="json")
         repo.upsert_fire_event(payload)
         wrote["fire_events"] += 1
 

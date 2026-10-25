@@ -101,6 +101,16 @@ class IngestBatch(BaseModel):
     run_id: Optional[str] = None
 
 
+class PipelineRunRequest(BaseModel):
+    """What C queues for B. `kind` and `params` match A's pipeline_runs table."""
+    model_config = ConfigDict(extra="forbid")
+
+    city_id: str
+    kind: str = "detect"          # 'detect' | 'fires'
+    start: Optional[date] = None  # B reads these as params.start / params.end
+    end: Optional[date] = None
+
+
 class ChatRequest(BaseModel):
     messages: Optional[list] = None   # [{role, content}] or use `message`
     message: Optional[str] = None

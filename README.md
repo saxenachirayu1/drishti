@@ -62,11 +62,16 @@ Brief section 7 (A-01 to A-24), all built:
 - [ ] Replace the demo sites with real detections and give the team the real N (sites found) and M (not on any record) for the pitch.
 
 ### To do: Member C (API)
-- [ ] `api/app/auth.py`: read the role from `payload["app_metadata"]["role"]`, not `user_metadata` (users can edit their own `user_metadata`, so they could make themselves admin). The database already writes the role into `app_metadata`.
-- [ ] `api/app/routers/ingest.py`: `det.model_dump()` → `det.model_dump(mode="json")` (and the same for sites and fire events). Today `/ingest` fails with "Object of type date is not JSON serializable" when it saves a detection.
-- [ ] Set `REPO_BACKEND=supabase` and the service role key.
-- [ ] `api/app/auth.py`: the project signs user tokens with an **ECC (P-256)** key, so `jwt.decode(..., SUPABASE_JWT_SECRET, algorithms=["HS256"])` rejects every logged-in user. Verify with the public keys instead: `jwt.PyJWKClient("https://ofudjcrzdgltpoyavibr.supabase.co/auth/v1/.well-known/jwks.json")`, `algorithms=["ES256"]`, `audience="authenticated"`. The legacy secret (Project Settings → JWT Keys → Legacy JWT Secret) only verifies the old anon/service_role keys.
-- [ ] `/pipeline/run` already queues work for B's worker through `pipeline_runs`, so no webhook is needed.
+- [x] `api/app/auth.py`: read the role from `payload["app_metadata"]["role"]`, not `user_metadata` (users can edit their own `user_metadata`, so they could make themselves admin). The database already writes the role into `app_metadata`.
+  - app_metadata is now the only source of the role; user_metadata is ignored (tests in `api/tests/test_auth.py`).
+- [x] `api/app/routers/ingest.py`: `det.model_dump()` → `det.model_dump(mode="json")` (and the same for sites and fire events). Today `/ingest` fails with "Object of type date is not JSON serializable" when it saves a detection.
+  - fixed, and every Supabase write now goes through `SupabaseRepo._dehydrate`, which converts dates and geometry.
+- [x] Set `REPO_BACKEND=supabase` and the service role key.
+  - done locally; verified reading A's live data through the API.
+- [x] `api/app/auth.py`: the project signs user tokens with an **ECC (P-256)** key, so `jwt.decode(..., SUPABASE_JWT_SECRET, algorithms=["HS256"])` rejects every logged-in user. Verify with the public keys instead: `jwt.PyJWKClient("https://ofudjcrzdgltpoyavibr.supabase.co/auth/v1/.well-known/jwks.json")`, `algorithms=["ES256"]`, `audience="authenticated"`. The legacy secret (Project Settings → JWT Keys → Legacy JWT Secret) only verifies the old anon/service_role keys.
+  - fixed: ES256 via the project's JWKS, HS256 legacy secret as fallback. `cryptography` added to requirements.
+- [x] `/pipeline/run` already queues work for B's worker through `pipeline_runs`, so no webhook is needed.
+  - `/pipeline/run` now inserts a queued `pipeline_runs` row (kind + params) for B's worker; no webhook.
 - [ ] Add the watsonx keys for Granite, deploy to IBM Code Engine, and send Member A the public URL. The app then uses it with `--dart-define=API_BASE_URL=<url>`.
 
 ### To do: everyone

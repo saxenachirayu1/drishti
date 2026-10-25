@@ -149,12 +149,14 @@ def test_local_spelling_of_the_watsonx_key_still_works(reload_config):
 
 def test_team_spelling_of_the_supabase_service_key_is_accepted(reload_config):
     s = reload_config(SUPABASE_SERVICE_ROLE_KEY="svc",
-                      SUPABASE_URL="https://x.supabase.co")
+                      SUPABASE_URL="https://x.supabase.co",
+                      REPO_BACKEND="auto")   # conftest pins this to "memory"
     assert s.SUPABASE_SERVICE_KEY == "svc"
     assert s.offline is False, "real keys present: must not sit in offline mode"
 
 
 def test_local_spelling_of_the_supabase_service_key_still_works(reload_config):
     s = reload_config(SUPABASE_SERVICE_KEY="svc2",
-                      SUPABASE_URL="https://x.supabase.co")
+                      SUPABASE_URL="https://x.supabase.co",
+                      REPO_BACKEND="auto")
     assert s.SUPABASE_SERVICE_KEY == "svc2"

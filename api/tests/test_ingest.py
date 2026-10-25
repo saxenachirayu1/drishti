@@ -94,6 +94,8 @@ def test_ingest_key_is_accepted_when_configured(client, monkeypatch):
     from app.config import settings
 
     monkeypatch.setattr(settings, "INGEST_API_KEY", "s3cret")
-    monkeypatch.setattr(settings, "SUPABASE_JWT_SECRET", "jwt")  # turn role auth on
+    # conftest turns auth off for the suite; this test needs it on.
+    monkeypatch.setattr(settings, "AUTH_BYPASS", False)
+    monkeypatch.setattr(settings, "SUPABASE_JWT_SECRET", "jwt")
     assert client.post("/ingest", json={}, headers={"X-Ingest-Key": "s3cret"}).status_code == 200
     assert client.post("/ingest", json={}, headers={"X-Ingest-Key": "wrong"}).status_code == 401

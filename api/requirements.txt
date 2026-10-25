@@ -4,6 +4,7 @@ pydantic==2.9.2
 python-dotenv==1.0.1
 shapely==2.0.6
 PyJWT==2.9.0
+cryptography==43.0.1        # ES256 verification of Supabase user tokens
 fpdf2==2.8.1
 uharfbuzz==0.39.3          # Devanagari shaping for Hindi PDFs (C-17)
 APScheduler==3.10.4

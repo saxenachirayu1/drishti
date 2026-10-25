@@ -72,6 +72,11 @@ class Settings:
         self.SUPABASE_SERVICE_KEY = _first(
             ["SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SERVICE_KEY"])
         self.SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET", "")
+        # Where the project publishes its ES256 public keys. Derived from
+        # SUPABASE_URL unless overridden.
+        self.SUPABASE_JWKS_URL = os.getenv("SUPABASE_JWKS_URL", "")
+        # Escape hatch: force the dev bypass on even with a project configured.
+        self.AUTH_BYPASS = os.getenv("AUTH_BYPASS", "") in ("1", "true", "yes")
 
         # Force a backend regardless of the keys: "auto"|"memory"|"supabase".
         # Use "memory" to demo with keys present; "supabase" to make a missing
@@ -142,6 +147,21 @@ class Settings:
         if self.REPO_BACKEND == "supabase":
             return False
         return not self.SUPABASE_URL or not self.SUPABASE_SERVICE_KEY
+
+    @property
+    def jwks_url(self) -> str:
+        if self.SUPABASE_JWKS_URL:
+            return self.SUPABASE_JWKS_URL
+        if self.SUPABASE_URL:
+            return f"{self.SUPABASE_URL.rstrip('/')}/auth/v1/.well-known/jwks.json"
+        return ""
+
+    @property
+    def auth_enabled(self) -> bool:
+        """Real token checks once a project is configured; bypass otherwise."""
+        if self.AUTH_BYPASS:
+            return False
+        return bool(self.SUPABASE_URL or self.SUPABASE_JWT_SECRET)
 
     @property
     def granite_on(self) -> bool:

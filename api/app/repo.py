@@ -229,6 +229,13 @@ class InMemoryRepo:
     def get_run(self, rid):
         return self.pipeline_runs.get(rid)
 
+    def list_runs(self, status=None, limit=50):
+        rows = list(self.pipeline_runs.values())
+        if status:
+            rows = [r for r in rows if r.get("status") == status]
+        return sorted(rows, key=lambda r: str(r.get("queued_at", "")),
+                      reverse=True)[:limit]
+
     def update_run(self, rid, **fields):
         self.pipeline_runs[rid].update(fields)
         return self.pipeline_runs[rid]
@@ -275,12 +282,21 @@ class SupabaseRepo:
 
     @staticmethod
     def _dehydrate(row):
-        """Shapely geometry -> the EWKT PostGIS accepts on write."""
+        """Make a row safe to send to PostgREST.
+
+        Two conversions, done here so every writer gets them rather than each
+        caller remembering:
+          * shapely geometry -> the EWKT PostGIS accepts
+          * date/datetime    -> ISO strings (the JSON encoder cannot take them)
+        """
         out = dict(row)
-        for key in ("centroid", "location", "geom"):
-            val = out.get(key)
-            if val is not None and hasattr(val, "wkt"):
+        for key, val in list(out.items()):
+            if val is None:
+                continue
+            if hasattr(val, "wkt"):                      # shapely geometry
                 out[key] = f"SRID=4326;{val.wkt}"
+            elif isinstance(val, (date, datetime)):      # date before datetime
+                out[key] = val.isoformat()
         return out
 
     def list_cities(self):
@@ -328,7 +344,7 @@ class SupabaseRepo:
         return self._hydrate(r[0]) if r else None
 
     def update_site(self, sid, **fields):
-        self._t("sites").update(fields).eq("id", sid).execute()
+        self._t("sites").update(self._dehydrate(fields)).eq("id", sid).execute()
         return self.get_site(sid)
 
     def upsert_site(self, site):
@@ -350,7 +366,7 @@ class SupabaseRepo:
         return ev
 
     def create_complaint(self, c):
-        self._t("complaints").insert(c).execute()
+        self._t("complaints").insert(self._dehydrate(c)).execute()
         return c
 
     def get_complaint(self, cid):
@@ -358,7 +374,7 @@ class SupabaseRepo:
         return r[0] if r else None
 
     def update_complaint(self, cid, **fields):
-        self._t("complaints").update(fields).eq("id", cid).execute()
+        self._t("complaints").update(self._dehydrate(fields)).eq("id", cid).execute()
         return self.get_complaint(cid)
 
     def list_complaints(self, ward_id=None, status=None):
@@ -370,7 +386,7 @@ class SupabaseRepo:
         return q.execute().data
 
     def add_verification(self, v):
-        self._t("verifications").insert(v).execute()
+        self._t("verifications").insert(self._dehydrate(v)).execute()
         return v
 
     def create_report(self, r):
@@ -388,11 +404,11 @@ class SupabaseRepo:
         return self._hydrate(r[0]) if r else None
 
     def update_report(self, rid, **fields):
-        self._t("citizen_reports").update(fields).eq("id", rid).execute()
+        self._t("citizen_reports").update(self._dehydrate(fields)).eq("id", rid).execute()
         return self.get_report(rid)
 
     def upsert_score(self, s):
-        self._t("city_scores").upsert(s).execute()
+        self._t("city_scores").upsert(self._dehydrate(s)).execute()
         return s
 
     def get_score(self, city_id, period):
@@ -401,15 +417,21 @@ class SupabaseRepo:
         return r[0] if r else None
 
     def create_run(self, r):
-        self._t("pipeline_runs").insert(r).execute()
+        self._t("pipeline_runs").insert(self._dehydrate(r)).execute()
         return r
 
     def get_run(self, rid):
         r = self._t("pipeline_runs").select("*").eq("id", rid).execute().data
         return r[0] if r else None
 
+    def list_runs(self, status=None, limit=50):
+        q = self._t("pipeline_runs").select("*")
+        if status:
+            q = q.eq("status", status)
+        return q.order("queued_at", desc=True).limit(limit).execute().data
+
     def update_run(self, rid, **fields):
-        self._t("pipeline_runs").update(fields).eq("id", rid).execute()
+        self._t("pipeline_runs").update(self._dehydrate(fields)).eq("id", rid).execute()
         return self.get_run(rid)
 
     def audit_add(self, actor, action, entity, entity_id, details=None):
@@ -434,7 +456,7 @@ REPO_METHODS = (
     "add_verification",
     "create_report", "list_reports", "get_report", "update_report",
     "upsert_score", "get_score",
-    "create_run", "get_run", "update_run",
+    "create_run", "get_run", "update_run", "list_runs",
     "audit_add",
 )
 
