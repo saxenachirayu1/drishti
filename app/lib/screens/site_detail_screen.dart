@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../models/place.dart';
 import '../models/site.dart';
+import '../l10n/l10n.dart';
 import '../providers.dart';
 import '../services/complaint_drafter.dart';
 import '../widgets/common.dart';
@@ -34,6 +35,7 @@ class SiteDetailScreen extends ConsumerWidget {
                     _Fires(siteId: site.id),
                     _Complaints(site: site),
                     _Verifications(site: site),
+                    if (ref.watch(profileProvider).value?.isStaff ?? false) _Reports(siteId: site.id),
                   ]),
                 ),
               ),
@@ -89,7 +91,7 @@ class _Facts extends ConsumerWidget {
           Text(s.changeStatus, style: Theme.of(context).textTheme.labelLarge),
           const SizedBox(height: 6),
           Wrap(spacing: 6, runSpacing: 6, children: [
-            for (final st in ['active', 'complaint_sent', 'cleanup_reported', 'cleared', 'dismissed'])
+            for (final st in ['active', 'complaint_sent', 'cleanup_reported', 'cleared'])
               ChoiceChip(
                 label: Text(s.status(st)),
                 selected: site.status == st,
@@ -101,8 +103,16 @@ class _Facts extends ConsumerWidget {
                         if (ok) ref.invalidate(sitesProvider);
                       },
               ),
+            if (site.status != 'dismissed')
+              ActionChip(
+                avatar: const Icon(Icons.block, size: 18),
+                label: Text(s.dismiss),
+                onPressed: () => dismissSite(context, ref, site),
+              ),
           ]),
         ],
+        if (site.status == 'dismissed' && site.dismissedReason != null)
+          InfoRow(s.dismissedBecause, site.dismissedReason!),
       ]),
     );
   }
@@ -328,6 +338,60 @@ class _Complaints extends ConsumerWidget {
               trailing: StatusChip(c.status),
               onTap: () => Navigator.push(
                   context, MaterialPageRoute(builder: (_) => ComplaintScreen(complaintId: c.id))),
+            ),
+        ]);
+      }),
+    );
+  }
+}
+
+/// Asks for a reason, then dismisses the site as a false positive (A-16).
+Future<void> dismissSite(BuildContext context, WidgetRef ref, Site site) async {
+  final s = ref.read(stringsProvider);
+  final reason = TextEditingController();
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(s.dismiss),
+      content: TextField(
+        controller: reason,
+        autofocus: true,
+        decoration: InputDecoration(labelText: s.dismissReason, hintText: s.dismissHint),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(MaterialLocalizations.of(ctx).cancelButtonLabel)),
+        FilledButton(onPressed: () => Navigator.pop(ctx, reason.text.trim().isNotEmpty), child: Text(s.dismiss)),
+      ],
+    ),
+  );
+  if (ok != true || !context.mounted) return;
+  final done = await guarded(context, () => ref.read(actionsProvider).dismiss(site, reason.text.trim()),
+      success: s.statusUpdated);
+  if (done) {
+    ref.invalidate(sitesProvider);
+    ref.invalidate(unreviewedSitesProvider);
+  }
+}
+
+class _Reports extends ConsumerWidget {
+  const _Reports({required this.siteId});
+  final String siteId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = ref.watch(stringsProvider);
+    return SectionCard(
+      title: s.reportsHere,
+      child: AsyncView(ref.watch(siteReportsProvider(siteId)), builder: (list) {
+        if (list.isEmpty) return const EmptyNote();
+        return Column(children: [
+          for (final r in list)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: ReportPhoto(stored: r.photoUrl, size: 48),
+              title: Text(r.note ?? '-'),
+              subtitle: Text(fmtDateTime(r.createdAt)),
+              trailing: StatusChip(r.status),
             ),
         ]);
       }),

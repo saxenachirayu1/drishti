@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/action.dart';
+import '../l10n/l10n.dart';
 import '../providers.dart';
 import '../services/action_engine.dart';
 import '../widgets/common.dart';

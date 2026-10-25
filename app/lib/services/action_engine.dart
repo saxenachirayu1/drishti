@@ -112,10 +112,41 @@ class ActionEngine {
 
   // --- site status and verification -------------------------------------------
 
-  Future<void> setSiteStatus(Site site, String status) async {
-    await repo.updateSite(site.id, {'status': status});
-    await repo.audit('status', 'site', site.id, {'from': site.status, 'to': status});
+  /// The before/after slider's data (A-15): GET /sites/{id}/timeline when the
+  /// API is up, with each detection's outline from the database.
+  Future<List<Detection>> timeline(String siteId) async {
+    final rows = await repo.timeline(siteId);
+    if (!api.enabled) return rows;
+    try {
+      final byId = {for (final d in rows) d.id: d};
+      return [
+        for (final r in await api.timeline(siteId))
+          Detection(
+            id: r['detection_id'] as String,
+            siteId: siteId,
+            detectedOn: DateTime.tryParse('${r['date']}'),
+            areaM2: (r['area_m2'] as num?)?.toDouble(),
+            confidence: (r['confidence'] as num?)?.toDouble(),
+            thumbUrl: r['thumb_url'] as String? ?? byId[r['detection_id']]?.thumbUrl,
+            rings: byId[r['detection_id']]?.rings ?? const [],
+          ),
+      ];
+    } on http.ClientException {
+      return rows;
+    } on TimeoutException {
+      return rows;
+    }
   }
+
+  /// Marks a false positive (A-16). The site leaves the public map and the
+  /// reason is kept on the site and in the audit log for retraining.
+  Future<void> dismiss(Site site, String reason) async {
+    await _apiOr(() => api.dismissSite(site.id, reason), () async {});
+    await repo.updateSite(site.id, {'status': 'dismissed', 'dismissed_reason': reason});
+  }
+
+  /// The database trigger writes the audit row (A-07).
+  Future<void> setSiteStatus(Site site, String status) => repo.updateSite(site.id, {'status': status});
 
   /// Checks one site's detection history and records the result (C-12).
   Future<String> verifySite(Site site, {String? complaintId}) async {

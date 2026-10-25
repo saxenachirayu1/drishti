@@ -122,6 +122,14 @@ class _AssistantScreenState extends ConsumerState<AssistantScreen> {
                       if (m.siteIds.isNotEmpty) ...[
                         const SizedBox(height: 6),
                         Wrap(spacing: 6, runSpacing: 6, children: [
+                          FilledButton.tonalIcon(
+                            icon: const Icon(Icons.map, size: 16),
+                            label: Text(s.showOnMap),
+                            onPressed: () {
+                              ref.read(highlightProvider.notifier).set(m.siteIds);
+                              ref.read(tabRequestProvider.notifier).set('map');
+                            },
+                          ),
                           for (final id in m.siteIds)
                             ActionChip(
                               avatar: const Icon(Icons.location_on, size: 16),

@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../l10n/l10n.dart';
 import '../providers.dart';
 
 Color statusColor(String status) => switch (status) {
@@ -185,3 +186,23 @@ List<Widget> baseLayers({required bool satellite}) => [
 Widget mapAttribution({required bool satellite}) => SimpleAttributionWidget(
       source: Text(satellite ? 'Esri, Maxar, Earthstar Geographics' : 'OpenStreetMap contributors'),
     );
+
+/// A citizen report photo from the private bucket, through a signed URL.
+class ReportPhoto extends ConsumerWidget {
+  const ReportPhoto({super.key, required this.stored, this.size = 64});
+  final String? stored;
+  final double size;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (stored == null) return Icon(Icons.place_outlined, size: size / 2);
+    final url = ref.watch(photoUrlProvider(stored!)).value;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(6),
+      child: url == null
+          ? SizedBox(width: size, height: size, child: const Icon(Icons.image_outlined))
+          : Image.network(url, width: size, height: size, fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => SizedBox(width: size, height: size, child: const Icon(Icons.broken_image))),
+    );
+  }
+}

@@ -5,6 +5,7 @@
 //   DRISHTI_LIVE=1 E2E_PASSWORD=... E2E_CITIZEN=a@x E2E_OFFICER=b@x E2E_ADMIN=c@x flutter test test/live_supabase_test.dart
 //
 // It writes test complaints, reports and runs; clean them up afterwards.
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -14,6 +15,7 @@ import 'package:drishti/services/api_client.dart';
 import 'package:drishti/services/drishti_repo.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
+import 'package:image/image.dart' as img;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 final _env = Platform.environment;
@@ -24,12 +26,15 @@ DrishtiRepo _client() => DrishtiRepo(SupabaseClient(AppConfig.supabaseUrl, AppCo
 
 ActionEngine _local(DrishtiRepo repo) => ActionEngine(repo, DrishtiApi('', () => repo.accessToken));
 
-// 1x1 transparent PNG
-final _png = Uint8List.fromList([
-  137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 1, 0, 0, 0, 1, 8, 6, 0, 0, 0, 31, 21, 196,
-  137, 0, 0, 0, 13, 73, 68, 65, 84, 120, 156, 99, 0, 1, 0, 0, 5, 0, 1, 13, 10, 45, 180, 0, 0, 0, 0, 73, 69, 78, 68,
-  174, 66, 96, 130,
-]);
+/// A small JPEG carrying EXIF (camera make and model), like a phone photo.
+Uint8List _photoWithExif() {
+  final image = img.Image(width: 32, height: 24)..clear(img.ColorRgb8(120, 90, 60));
+  image.exif.imageIfd['Make'] = img.IfdValueAscii('E2E Phone');
+  image.exif.imageIfd['Model'] = img.IfdValueAscii('Model X');
+  final bytes = img.encodeJpg(image);
+  assert(img.decodeJpg(bytes)!.exif.imageIfd['Make'] != null);
+  return Uint8List.fromList(bytes);
+}
 
 void main() {
   final anon = _client();
@@ -96,9 +101,20 @@ void main() {
     });
 
     test('uploads a photo and files a report matched to site-1', () async {
-      final url = await citizen.uploadReportPhoto(_png, ext: 'png');
-      expect((await http.get(Uri.parse(url))).statusCode, 200);
-      final res = await citizen.submitReport(lat: 22.6503, lng: 75.8005, note: 'E2E near site-1', photoUrl: url);
+      final path = await citizen.uploadReportPhoto(_photoWithExif());
+      expect(path, startsWith('reports/${citizen.user!.id}/'));
+      // A-04: private bucket. The reporter and staff get a signed URL; the public does not.
+      final mine = await http.get(Uri.parse((await citizen.photoUrl(path))!));
+      expect(mine.statusCode, 200);
+      expect((await http.get(Uri.parse((await officer.photoUrl(path))!))).statusCode, 200);
+      await expectLater(anon.photoUrl(path), throwsA(anything));
+      // N-12: re-encoded as JPEG with no EXIF.
+      final back = img.decodeImage(mine.bodyBytes)!;
+      expect(img.JpegDecoder().isValidFile(mine.bodyBytes), isTrue);
+      expect(img.decodeJpg(_photoWithExif())!.exif.imageIfd['Make'], isNotNull, reason: 'the original has EXIF');
+      expect(back.exif.imageIfd['Make'], isNull);
+      expect(back.exif.isEmpty, isTrue);
+      final res = await citizen.submitReport(lat: 22.6503, lng: 75.8005, note: 'E2E near site-1', photoUrl: path);
       expect(res['status'], 'matched');
       expect(res['site_id'], 'site-1');
       expect(res['distance_m'] as num, lessThan(150));
@@ -227,6 +243,84 @@ void main() {
       await officer.updateSite('site-1', {'status': 'active'});
       await officer.updateSite('site-5', {'status': 'active', 'cleared_candidate': false, 'cleared_at': null});
       expect((await anon.site('site-1'))!.status, 'active');
+    });
+  });
+
+  group('Member A requirements (A-06, A-07, A-16, A-18, A-20, A-22)', skip: !_live, () {
+    late ActionEngine engine;
+    setUpAll(() => engine = _local(officer));
+
+    test('A-06: a site change reaches an open map within 5 s', () async {
+      final got = Completer<void>();
+      final joined = Completer<void>();
+      final channel = anon.db
+          .channel('e2e-${DateTime.now().microsecondsSinceEpoch}')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.update,
+            schema: 'public',
+            table: 'sites',
+            callback: (p) {
+              if (p.newRecord['id'] == 'site-2' && !got.isCompleted) got.complete();
+            },
+          )
+          .subscribe((status, _) {
+        if (status == RealtimeSubscribeStatus.subscribed && !joined.isCompleted) joined.complete();
+      });
+      await joined.future.timeout(const Duration(seconds: 15));
+      final sw = Stopwatch()..start();
+      await officer.updateSite('site-2', {'status': 'cleanup_reported'});
+      await got.future.timeout(const Duration(seconds: 5));
+      expect(sw.elapsed, lessThan(const Duration(seconds: 5)));
+      await anon.db.removeChannel(channel);
+    });
+
+    test('A-07: the database audits every status change', () async {
+      await officer.updateSite('site-2', {'status': 'active'});
+      final rows = await officer.db
+          .from('audit_log')
+          .select()
+          .eq('action', 'status_change')
+          .eq('entity_id', 'site-2')
+          .order('at', ascending: false);
+      expect(rows.first['details'], {'from': 'cleanup_reported', 'to': 'active'});
+      expect(rows.first['actor'], officer.user!.id);
+    });
+
+    test('A-16: dismiss with a reason hides the site from the public', () async {
+      await engine.dismiss((await officer.site('site-2'))!, 'E2E: construction site');
+      expect((await anon.site('site-2')), isNull);
+      final s = (await officer.site('site-2'))!;
+      expect(s.status, 'dismissed');
+      expect(s.dismissedReason, 'E2E: construction site');
+      final audit = await officer.db.from('audit_log').select().eq('entity_id', 'site-2').order('at', ascending: false);
+      expect((audit.first['details'] as Map)['reason'], 'E2E: construction site');
+      await officer.updateSite('site-2', {'status': 'active', 'dismissed_reason': null});
+    });
+
+    test('A-22: new detections wait for review', () async {
+      expect((await officer.unreviewedSites()).map((x) => x.id), contains('site-4'));
+      await officer.markReviewed('site-4');
+      expect((await officer.unreviewedSites()).map((x) => x.id), isNot(contains('site-4')));
+      await officer.updateSite('site-4', {'reviewed_at': null, 'reviewed_by': null});
+    });
+
+    test('A-18: admins set the home city of an officer', () async {
+      await admin.setUserAccess(officer.user!.id, 'officer', 'indore');
+      expect((await officer.myProfile())!.cityId, 'indore');
+      await expectLater(officer.setUserAccess(officer.user!.id, 'admin', null), throwsA(isA<PostgrestException>()));
+      await admin.setUserAccess(officer.user!.id, 'officer', null);
+    });
+
+    test('A-20: monthly score history, oldest first', () async {
+      final months = await anon.scoreHistory('indore');
+      expect(months.length, greaterThanOrEqualTo(5));
+      expect(months.first.$1.compareTo(months.last.$1), lessThan(0));
+    });
+
+    test('A-15: timeline through the action engine', () async {
+      final t = await engine.timeline('site-1');
+      expect(t.length, 3);
+      expect(t.first.rings, isNotEmpty);
     });
   });
 }

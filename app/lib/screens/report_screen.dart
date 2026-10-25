@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -12,7 +13,8 @@ import '../widgets/auth_form.dart';
 import '../widgets/common.dart';
 import 'site_detail_screen.dart';
 
-/// Citizen layer: drop a pin, add a note and photo, and see your reports.
+/// Citizen layer (A-19): the pin starts at the phone's GPS position (tap the
+/// map to move it), add a note and a photo, and see your reports.
 class ReportScreen extends ConsumerStatefulWidget {
   const ReportScreen({super.key});
 
@@ -25,8 +27,9 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
   final _map = MapController();
   LatLng? _pin;
   Uint8List? _photo;
-  String _photoExt = 'jpg';
   bool _busy = false;
+  bool _locating = false;
+  bool _askedGps = false;
 
   @override
   void dispose() {
@@ -34,15 +37,32 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
     super.dispose();
   }
 
+  Future<void> _locate() async {
+    setState(() => _locating = true);
+    try {
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+        throw StateError('denied');
+      }
+      final pos = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, timeLimit: Duration(seconds: 15)));
+      final p = LatLng(pos.latitude, pos.longitude);
+      if (!mounted) return;
+      setState(() => _pin = p);
+      _map.move(p, 16);
+    } catch (_) {
+      if (mounted) toast(context, ref.read(stringsProvider).locationOff);
+    } finally {
+      if (mounted) setState(() => _locating = false);
+    }
+  }
+
   Future<void> _pick(ImageSource source) async {
-    final file = await ImagePicker().pickImage(source: source, maxWidth: 1600, imageQuality: 80);
+    final file = await ImagePicker().pickImage(source: source, maxWidth: 1600, imageQuality: 85);
     if (file == null) return;
     final bytes = await file.readAsBytes();
-    final name = file.name.toLowerCase();
-    setState(() {
-      _photo = bytes;
-      _photoExt = name.endsWith('.png') ? 'png' : (name.endsWith('.webp') ? 'webp' : 'jpg');
-    });
+    setState(() => _photo = bytes);
   }
 
   Future<void> _submit() async {
@@ -55,19 +75,18 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
     }
     setState(() => _busy = true);
     try {
-      final photoUrl = _photo == null ? null : await repo.uploadReportPhoto(_photo!, ext: _photoExt);
+      final photo = _photo == null ? null : await repo.uploadReportPhoto(_photo!);
       final res = await repo.submitReport(
         lat: pin.latitude,
         lng: pin.longitude,
         note: _note.text.trim().isEmpty ? null : _note.text.trim(),
-        photoUrl: photoUrl,
+        photoUrl: photo,
       );
       ref.invalidate(myReportsProvider);
       ref.invalidate(allReportsProvider);
       if (!mounted) return;
       final matched = res['status'] == 'matched';
       setState(() {
-        _pin = null;
         _photo = null;
         _note.clear();
       });
@@ -85,7 +104,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                 },
                 child: Text(s.open),
               ),
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(s.ok)),
           ],
         ),
       );
@@ -117,6 +136,12 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
       );
     }
 
+    // Auto GPS the first time the signed-in reporter opens the screen.
+    if (!_askedGps) {
+      _askedGps = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _locate());
+    }
+
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 900),
@@ -125,10 +150,16 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
           const SizedBox(height: 4),
           Text(s.reportHint),
           const SizedBox(height: 8),
-          Wrap(spacing: 6, children: [
+          Wrap(spacing: 6, runSpacing: 6, children: [
+            ActionChip(
+              avatar: _locating
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.my_location, size: 18),
+              label: Text(s.useMyLocation),
+              onPressed: _locating ? null : _locate,
+            ),
             for (final c in cities)
-              if (c.center != null)
-                ActionChip(label: Text(c.name), onPressed: () => _map.move(c.center!, 13)),
+              if (c.center != null) ActionChip(label: Text(c.name), onPressed: () => _map.move(c.center!, 13)),
           ]),
           const SizedBox(height: 8),
           SizedBox(
@@ -151,7 +182,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                         width: 40,
                         height: 40,
                         alignment: Alignment.topCenter,
-                        child: const Icon(Icons.location_on, color: Colors.purple, size: 40),
+                        child: Icon(Icons.location_on, color: Colors.purple, size: 40, semanticLabel: s.location),
                       ),
                     ]),
                   mapAttribution(satellite: false),
@@ -174,25 +205,19 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
             decoration: InputDecoration(labelText: s.note, hintText: s.notePlaceholder, border: const OutlineInputBorder()),
           ),
           const SizedBox(height: 8),
-          Row(children: [
+          Wrap(spacing: 8, runSpacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
             OutlinedButton.icon(
                 icon: const Icon(Icons.photo_camera), label: Text(s.camera), onPressed: () => _pick(ImageSource.camera)),
-            const SizedBox(width: 8),
             OutlinedButton.icon(
                 icon: const Icon(Icons.photo_library), label: Text(s.gallery), onPressed: () => _pick(ImageSource.gallery)),
-            const SizedBox(width: 12),
             if (_photo != null)
-              Stack(children: [
-                ClipRRect(
-                    borderRadius: BorderRadius.circular(6),
-                    child: Image.memory(_photo!, width: 64, height: 64, fit: BoxFit.cover)),
-                Positioned(
-                  right: -8,
-                  top: -8,
-                  child: IconButton(
-                      icon: const Icon(Icons.cancel, size: 18), onPressed: () => setState(() => _photo = null)),
-                ),
-              ]),
+              InputChip(
+                avatar: ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: Image.memory(_photo!, width: 32, height: 32, fit: BoxFit.cover)),
+                label: Text(s.addPhoto),
+                onDeleted: () => setState(() => _photo = null),
+              ),
           ]),
           const SizedBox(height: 12),
           FilledButton.icon(
@@ -210,13 +235,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
               for (final r in list)
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: r.photoUrl == null
-                      ? const Icon(Icons.place_outlined)
-                      : ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: Image.network(r.photoUrl!, width: 48, height: 48, fit: BoxFit.cover,
-                              errorBuilder: (_, _, _) => const Icon(Icons.broken_image)),
-                        ),
+                  leading: ReportPhoto(stored: r.photoUrl, size: 48),
                   title: Text(r.note ?? '-'),
                   subtitle: Text('${fmtDateTime(r.createdAt)}'
                       '${r.linkedSiteId != null ? ' · ${s.site} ${r.linkedSiteId}' : ''}'),

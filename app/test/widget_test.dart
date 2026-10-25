@@ -1,12 +1,18 @@
-import 'package:drishti/l10n/strings.dart';
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:drishti/l10n/l10n.dart';
 import 'package:drishti/models/action.dart';
 import 'package:drishti/models/place.dart';
 import 'package:drishti/models/site.dart';
 import 'package:drishti/services/action_engine.dart';
 import 'package:drishti/services/complaint_drafter.dart';
 import 'package:drishti/services/local_assistant.dart';
+import 'package:drishti/screens/map_screen.dart';
+import 'package:drishti/services/drishti_repo.dart';
 import 'package:drishti/services/verification_logic.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 Site _site(String id, {String city = 'indore', int ward = 12, double area = 3200, int fire = 0, bool water = false}) =>
     Site(
@@ -148,9 +154,86 @@ void main() {
     });
   });
 
-  test('every English string has a Hindi translation', () {
-    expect(S.of(true).map, isNot(S.of(false).map));
-    expect(S.of(true).status('active'), 'सक्रिय');
-    expect(S.of(true).foundLine(3, 2, 'Indore'), contains('3'));
+  group('localisation (A-10)', () {
+    test('every key in English is translated to Hindi', () {
+      Map<String, dynamic> arb(String code) =>
+          jsonDecode(File('lib/l10n/app_$code.arb').readAsStringSync()) as Map<String, dynamic>;
+      final en = arb('en').keys.where((k) => !k.startsWith('@')).toSet();
+      final hi = arb('hi').keys.where((k) => !k.startsWith('@')).toSet();
+      expect(hi, en);
+    });
+
+    test('codes map to text in both languages', () {
+      expect(stringsFor('hi').status('active'), 'सक्रिय');
+      expect(stringsFor('en').result('still_present'), 'Still present');
+      expect(stringsFor('hi').foundLine(3, 2, 'Indore'), contains('3'));
+      expect(localeForLanguage('Hindi'), 'hi');
+      expect(languageForLocale('en'), 'English');
+    });
   });
+
+  group('map', () {
+    final sites = [
+      _site('a', area: 1000),
+      _site('b', area: 1000).copyAt(22.651, 75.801),
+      _site('c', area: 4700).copyAt(23.2, 77.4),
+    ];
+
+    test('nearby pins cluster at city zoom and split when zoomed in (A-11)', () {
+      expect(clusterSites(sites, 10).map((g) => g.length).toList()..sort(), [1, 2]);
+      expect(clusterSites(sites, 19).length, 3);
+    });
+
+    test('pins are sized by area (A-11)', () {
+      expect(pinSize(4700), greaterThan(pinSize(1000)));
+      expect(pinSize(1e9), 56);
+    });
+
+    test('filters combine (A-13)', () {
+      const f = SiteFilters(nearWater: true, minFireRisk: 60);
+      expect(f.passes(_site('x', fire: 72, water: true)), isTrue);
+      expect(f.passes(_site('x', fire: 72)), isFalse);
+      expect(f.passes(_site('x', fire: 40, water: true)), isFalse);
+      expect(const SiteFilters(statuses: {'cleared'}).passes(_site('x')), isFalse);
+      expect(const SiteFilters(sinceDays: 30).passes(_site('x')), isFalse, reason: 'first seen in April');
+      expect(const SiteFilters().isDefault, isTrue);
+    });
+  });
+
+  test('offline: the last good copy is returned when the network fails (A-24)', () async {
+    final cache = _MemCache()
+      ..data['cities'] = jsonEncode([
+        {'id': 'indore', 'name': 'Indore', 'lat': 22.7, 'lng': 75.85}
+      ]);
+    // An unresolvable host: every request fails like a lost connection.
+    final repo = DrishtiRepo(SupabaseClient('http://drishti-offline.invalid', 'anon'), cache: cache);
+    final cities = await repo.cities();
+    expect(cities.single.name, 'Indore');
+    expect(repo.offline.value, isTrue);
+    await expectLater(DrishtiRepo(SupabaseClient('http://drishti-offline.invalid', 'anon')).cities(), throwsA(anything),
+        reason: 'with no saved copy the error still surfaces');
+  });
+}
+
+class _MemCache implements RowCache {
+  final data = <String, String>{};
+  @override
+  String? read(String key) => data[key];
+  @override
+  Future<void> write(String key, String value) async => data[key] = value;
+}
+
+extension on Site {
+  Site copyAt(double lat, double lng) => Site(
+        id: id,
+        cityId: cityId,
+        status: status,
+        areaM2: areaM2,
+        fireRisk: fireRisk,
+        nearWater: nearWater,
+        onOfficialRecord: onOfficialRecord,
+        firstSeen: firstSeen,
+        lat: lat,
+        lng: lng,
+      );
 }

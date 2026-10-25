@@ -62,6 +62,10 @@ Seed wards are demo squares with `@example.com` emails. Replace them with real b
 | missed_scenes, cleared_candidate | int, boolean | B's tracker |
 | growth | text | free text shown to officers |
 | cleared_at | timestamptz | *auto* when status becomes `cleared` |
+| dismissed_reason | text | why an officer dismissed it as a false positive (A-16; feeds retraining) |
+| reviewed_at, reviewed_by | timestamptz, text | set when an admin confirms a new detection (A-22) |
+
+Every change of `status` on sites and complaints writes an `audit_log` row (`action = 'status_change'`, details `{from, to, reason?}`) from a database trigger, whoever made it (A-07).
 
 ### detections (one sighting of a site in one scene)
 | Column | Type | Notes |
@@ -144,6 +148,7 @@ automatically on sign-up. The role is copied into the JWT as `app_metadata.role`
 | `submit_report(lng, lat, note, photo_url)` | app (signed in) | files a report, links it to a site within 150 m |
 | `refresh_city_score(p_city_id)` | officers | recomputes this month's score (same formula as C's `scoring.py`) |
 | `set_user_role(target, new_role)` | admins | change a user's role |
+| `set_user_access(target, new_role, new_city)` | admins | role and home city together (an officer sees their city's complaints) |
 
 ## Who can do what (row level security)
 
@@ -161,5 +166,16 @@ automatically on sign-up. The role is copied into the JWT as `app_metadata.role`
 | Bucket | Public | Who writes |
 | --- | --- | --- |
 | `thumbnails` | yes | B (detection image chips) |
-| `report-photos` | yes | citizens, into `<user id>/...` |
+| `reports` | no: the reporter and staff read, through signed URLs | citizens, into `<user id>/...`. The app strips EXIF before upload (N-12). `citizen_reports.photo_url` holds the path `reports/<user id>/<file>.jpg` |
 | `complaints` | no (staff read) | C (PDFs) |
+| `report-photos` | yes | not used any more (first draft); safe to delete once empty |
+
+## Migrations
+
+| File | What |
+| --- | --- |
+| `20261023000000_initial_schema.sql` | all tables, views, RPCs, RLS, buckets, realtime |
+| `20261025120000_member_a_requirements.sql` | GIST indexes, private `reports` bucket, status audit trigger, dismiss reason, detection review, `set_user_access`, realtime on reports |
+| `20261025130000_fix_audit_trigger.sql` | audit trigger fix for complaints |
+
+All three are applied to the live project.

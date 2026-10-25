@@ -45,6 +45,12 @@ class DrishtiApi {
 
   Future<Map<String, dynamic>> health() async => Map<String, dynamic>.from(await _send('GET', '/health'));
 
+  /// [{detection_id, date, area_m2, confidence, thumb_url}] in date order.
+  Future<List<Map<String, dynamic>>> timeline(String siteId) async =>
+      [for (final r in await _send('GET', '/sites/$siteId/timeline') as List) Map<String, dynamic>.from(r as Map)];
+
+  Future<void> dismissSite(String siteId, String reason) => _send('POST', '/sites/$siteId/dismiss', {'reason': reason});
+
   Future<Map<String, dynamic>> createComplaint(String siteId, String language) async =>
       Map<String, dynamic>.from(await _send('POST', '/complaints', {'site_id': siteId, 'language': language}));
 

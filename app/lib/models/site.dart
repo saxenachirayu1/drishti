@@ -24,6 +24,8 @@ class Site {
     this.lat,
     this.lng,
     this.rings = const [],
+    this.dismissedReason,
+    this.reviewedAt,
   });
 
   final String id;
@@ -45,6 +47,8 @@ class Site {
   final double? lat;
   final double? lng;
   final List<List<LatLng>> rings;
+  final String? dismissedReason;
+  final DateTime? reviewedAt;
 
   LatLng? get point => lat == null || lng == null ? null : LatLng(lat!, lng!);
 
@@ -70,6 +74,8 @@ class Site {
         lat: asDouble(m['lat']),
         lng: asDouble(m['lng']),
         rings: outerRings(m['geojson']),
+        dismissedReason: m['dismissed_reason'] as String?,
+        reviewedAt: asDate(m['reviewed_at']),
       );
 }
 

@@ -78,6 +78,10 @@ class _ScoreCard extends ConsumerWidget {
           if (score.medianDaysToClear != null) InfoRow(s.daysToClear, score.medianDaysToClear!.toStringAsFixed(0)),
           if (score.pctVerifiedCleared != null)
             InfoRow(s.verifiedCleared, '${(score.pctVerifiedCleared! * 100).round()}%'),
+          const SizedBox(height: 8),
+          Align(alignment: Alignment.centerLeft, child: Text(s.trend, style: Theme.of(context).textTheme.labelLarge)),
+          const SizedBox(height: 4),
+          AsyncView(ref.watch(scoreHistoryProvider(score.cityId)), builder: (months) => _Trend(months: months)),
           if (canAct)
             Align(
               alignment: Alignment.centerRight,
@@ -92,6 +96,44 @@ class _ScoreCard extends ConsumerWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// One bar per month, labelled with the score (A-20).
+class _Trend extends StatelessWidget {
+  const _Trend({required this.months});
+  final List<(String, int)> months;
+
+  @override
+  Widget build(BuildContext context) {
+    final shown = months.length > 12 ? months.sublist(months.length - 12) : months;
+    return SizedBox(
+      height: 110,
+      child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+        for (final (period, score) in shown)
+          Expanded(
+            child: Semantics(
+              label: '$period: $score',
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 3),
+                child: Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+                  Text('$score', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 2),
+                  Container(
+                    height: 60 * score / 100,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: period == shown.last.$1 ? 1 : 0.45),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(period.length >= 7 ? period.substring(5) : period, style: const TextStyle(fontSize: 10)),
+                ]),
+              ),
+            ),
+          ),
+      ]),
     );
   }
 }

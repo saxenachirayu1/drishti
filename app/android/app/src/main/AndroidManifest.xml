@@ -1,6 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Supabase, map tiles and the Drishti API -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Citizen reports start at the phone's position (A-19) -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <application
         android:label="Drishti"
         android:name="${applicationName}"
