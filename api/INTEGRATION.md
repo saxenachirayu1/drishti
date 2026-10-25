@@ -49,7 +49,7 @@ so you can see *why* a city scored what it did before you retune.
 1. Put `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` in `.env`.
 2. Set `REPO_BACKEND=supabase`. Without this, a typo'd key silently falls back
    to the in-memory data and everything *looks* fine — this makes it fail loudly.
-3. Have A run `supabase/migrations/20261023000000_initial_schema.sql`. It includes the `ward_for_point`
+3. Have A run `../supabase/001_schema.sql`. It includes the `ward_for_point`
    PostGIS function this API calls, and `detections.detected_on`.
 4. Run the contract test against it (below).
 5. Set `SUPABASE_JWT_SECRET` to turn real login checks on. Until it is set,

@@ -101,7 +101,7 @@ Copy `.env.example` to `.env`, then fill in:
 
 1. **Supabase (from A):** `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`. Also set
    `SUPABASE_JWT_SECRET` to turn on real login checks. The schema A must run is
-   in `supabase/migrations/20261023000000_initial_schema.sql` — hand it to A (it's their job, included
+   in `../supabase/001_schema.sql` — hand it to A (it's their job, included
    here to unblock everyone). It now also contains the `ward_for_point`
    PostGIS function the API calls for ward mapping.
 2. **Granite:** `WATSONX_APIKEY`, `WATSONX_PROJECT_ID`. Confirm `GRANITE_MODEL_ID`

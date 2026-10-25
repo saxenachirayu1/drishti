@@ -69,3 +69,11 @@ def test_city_stats_works_without_an_explicit_city_id(client):
                     json={"message": "how many sites are in bhopal?"}).json()
     assert d["tools_used"] == ["city_stats"]
     assert "bhopal" in d["answer"].lower()
+
+
+def test_ward_assignment_skips_sites_that_already_have_a_ward(client):
+    """It runs on every startup; rewriting every row each boot is wasted writes."""
+    from app.services.ward_mapping import assign_all
+
+    assert assign_all() == 0, "startup already assigned them; nothing left to do"
+    assert assign_all(force=True) > 0, "force=True must reassign regardless"

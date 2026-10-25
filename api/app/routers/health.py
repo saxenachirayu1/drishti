@@ -19,7 +19,8 @@ def health():
         "repo_backend": settings.REPO_BACKEND,
         "granite": "on" if settings.granite_on else "template-fallback",
         "email": "resend" if settings.RESEND_API_KEY else "console",
-        "auth": "jwt" if settings.SUPABASE_JWT_SECRET else f"dev-bypass ({settings.DEV_ROLE})",
+        "auth": ("jwt (ES256 via JWKS)" if settings.auth_enabled
+                 else f"dev-bypass ({settings.DEV_ROLE})"),
         "pipeline": "webhook" if settings.PIPELINE_WEBHOOK_URL else "not wired",
         "config": {
             "score_weights": settings.SCORE_WEIGHTS,

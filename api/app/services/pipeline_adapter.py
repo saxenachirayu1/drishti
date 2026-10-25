@@ -1,47 +1,61 @@
 """
-The one place that knows how to start Member B's pipeline (section 6).
+Starting Member B's pipeline (section 6).
 
-B's pipeline is a separate service and we do not yet know how it will be
-reachable. Rather than scatter that unknown, every trigger goes through
-`trigger_pipeline()` here. Three ways to point it at B, cheapest first:
+B's worker (`drishti-pipeline worker`) polls the `pipeline_runs` table for rows
+with status 'queued', oldest `queued_at` first, and claims them. So triggering a
+run means inserting a queued row - there is no webhook and no service to call,
+which also means a run survives the worker being down.
 
-1. **A webhook** - set PIPELINE_WEBHOOK_URL (and PIPELINE_WEBHOOK_TOKEN).
-   Nothing to write: this module POSTs {city_id, date_from, date_to, run_id}.
-2. **A Python call** - B ships an importable package: replace the body of
-   `_call_b_directly()` below with the import and the call. It is the only
-   function you need to touch.
-3. **A queue** - same place, publish a message instead.
+The contract, from A's schema and B's `store.claim_next_run()`:
+    kind    'detect' | 'fires'
+    params  jsonb; B reads params["start"] / params["end"] as ISO dates
+    status  'queued' -> B sets 'running', then 'done' | 'failed'
 
-Whichever you pick, B reports results back through `POST /ingest`, so nothing
-downstream changes. Until one is configured the run is recorded and returned as
-`pending`, which keeps the endpoint honest instead of pretending work started.
+A webhook is still supported for a deployment where B runs as a service
+instead: set PIPELINE_WEBHOOK_URL and it is called after the row is queued.
 """
 import json
 import logging
 import urllib.error
 import urllib.request
+from datetime import datetime, timezone
 from typing import Optional
 
 from ..config import settings
+from ..repo import get_repo
 
 log = logging.getLogger("drishti.pipeline")
 
+KINDS = ("detect", "fires")
 TIMEOUT_S = 10
 
 
-def _call_b_directly(payload: dict) -> Optional[dict]:
-    """
-    Replace this with B's real entrypoint when their code is importable, e.g.
+def queue_run(run_id: str, city_id: str, kind: str = "detect",
+              start=None, end=None) -> dict:
+    """Insert the queued row B's worker will claim."""
+    params = {}
+    if start:
+        params["start"] = str(start)
+    if end:
+        params["end"] = str(end)
 
-        from drishti_pipeline import run_city
-        result = run_city(payload["city_id"],
-                          date_from=payload["date_from"],
-                          date_to=payload["date_to"])
-        return {"mode": "direct", "status": "started", "detail": result}
-
-    Return None to mean "not wired up", which is the default.
-    """
-    return None
+    row = {
+        "id": run_id,
+        "city_id": city_id,
+        "kind": kind,
+        "params": params,
+        "status": "queued",
+        "queued_at": datetime.now(timezone.utc).isoformat(),
+        # B sets these when it claims the row and when it finishes.
+        "started_at": None,
+        "finished_at": None,
+        "scenes_processed": 0,
+        "sites_new": 0,
+        "sites_updated": 0,
+        "error": None,
+    }
+    get_repo().create_run(row)
+    return row
 
 
 def _post_webhook(payload: dict) -> dict:
@@ -52,34 +66,36 @@ def _post_webhook(payload: dict) -> dict:
     req = urllib.request.Request(settings.PIPELINE_WEBHOOK_URL, body, headers)
     try:
         with urllib.request.urlopen(req, timeout=TIMEOUT_S) as resp:
-            return {"mode": "webhook", "status": "started",
-                    "http_status": resp.status}
+            return {"notified": True, "http_status": resp.status}
     except urllib.error.HTTPError as e:
         log.warning("pipeline webhook returned %s", e.code)
-        return {"mode": "webhook", "status": "failed", "http_status": e.code,
-                "error": f"B's pipeline returned HTTP {e.code}"}
+        return {"notified": False, "error": f"B's pipeline returned HTTP {e.code}"}
     except Exception as e:                      # network down, bad URL, timeout
         log.warning("pipeline webhook failed: %s", e)
-        return {"mode": "webhook", "status": "failed", "error": str(e)}
+        return {"notified": False, "error": str(e)}
 
 
-def trigger_pipeline(city_id: str, date_from=None, date_to=None,
-                     run_id: Optional[str] = None) -> dict:
+def trigger_pipeline(city_id: str, run_id: str, kind: str = "detect",
+                     date_from=None, date_to=None) -> dict:
     """
-    Ask B to process a city. Never raises: a failure to reach B is reported in
-    the return value so the caller can record it on the run.
-    """
-    payload = {"city_id": city_id, "date_from": date_from,
-               "date_to": date_to, "run_id": run_id}
+    Queue a run for B. Never raises: the row is what matters, and a webhook
+    that cannot be reached is reported rather than failing the request.
 
-    direct = _call_b_directly(payload)
-    if direct is not None:
-        return direct
+    status is 'queued' - the work is genuinely pending until B's worker claims
+    it, so we do not claim it "started".
+    """
+    if kind not in KINDS:
+        return {"status": "rejected",
+                "error": f"kind must be one of {list(KINDS)}"}
+
+    queue_run(run_id, city_id, kind, date_from, date_to)
+    out: dict[str, Optional[str]] = {
+        "status": "queued", "kind": kind,
+        "detail": "waiting for B's worker (drishti-pipeline worker) to claim it",
+    }
 
     if settings.PIPELINE_WEBHOOK_URL:
-        return _post_webhook(payload)
-
-    log.info("no pipeline target configured; run %s recorded only", run_id)
-    return {"mode": "none", "status": "pending",
-            "detail": "Set PIPELINE_WEBHOOK_URL or wire _call_b_directly() "
-                      "in app/services/pipeline_adapter.py"}
+        out.update(_post_webhook({"city_id": city_id, "kind": kind,
+                                  "date_from": date_from, "date_to": date_to,
+                                  "run_id": run_id}))
+    return out
