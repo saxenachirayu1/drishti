@@ -1,0 +1,58 @@
+# A-23: build the Flutter web app (the officials' dashboard) and publish it on
+# GitHub Pages at https://<owner>.github.io/<repo>/ on every push to main.
+# One-time setup by the repo owner: Settings -> Pages -> Source: GitHub Actions.
+name: app-web
+
+on:
+  push:
+    branches: [main]
+    paths: ["app/**", ".github/workflows/app-web.yml"]
+  pull_request:
+    paths: ["app/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test test/widget_test.dart
+      # API_BASE_URL: set it under Settings -> Secrets and variables -> Actions -> Variables
+      # once Member C's API is deployed; empty means the app works directly on Supabase.
+      - run: >
+          flutter build web --release
+          --base-href "/${{ github.event.repository.name }}/"
+          --dart-define=API_BASE_URL=${{ vars.API_BASE_URL }}
+      - uses: actions/upload-pages-artifact@v3
+        if: github.ref == 'refs/heads/main'
+        with:
+          path: app/build/web
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
