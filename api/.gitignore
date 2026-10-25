@@ -1,0 +1,10 @@
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+# generated complaint PDFs; out/.gitkeep keeps the directory
+out/*.pdf
+# a Unicode font dropped in for Hindi PDFs (see fonts/README.md)
+fonts/*.ttf
+fonts/*.ttc
