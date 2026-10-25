@@ -95,3 +95,54 @@ def test_hindi_letter_has_no_stray_english_prose():
                if any("a" <= c.lower() <= "z" for c in w)]
     # only the city and ward names, which come from the database
     assert all(w.strip("(),।") in ("Indore", "Rau") for w in english), english
+
+
+# --- the font must actually have Devanagari glyphs, not merely be Unicode ---
+def test_a_latin_only_font_is_rejected():
+    """
+    DejaVuSans and plain Noto Sans ship on Linux images and are Unicode, but
+    carry no Devanagari. Accepting one renders the letter as blank boxes.
+    """
+    from app.fonts import covers_devanagari
+
+    latin_only = [p for p in ["/System/Library/Fonts/Supplemental/Verdana.ttf",
+                              "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"]
+                  if os.path.exists(p)]
+    if not latin_only:
+        pytest.skip("no latin-only font on this machine to check against")
+    for path in latin_only:
+        assert covers_devanagari(path) is False, f"{path} has no Devanagari"
+
+
+def test_a_missing_or_unreadable_font_is_not_accepted():
+    from app.fonts import covers_devanagari
+
+    assert covers_devanagari("/nonexistent/Nope.ttf") is False
+    assert covers_devanagari(__file__) is False      # not a font at all
+
+
+def test_chosen_font_covers_devanagari_when_one_is_found():
+    from app.fonts import covers_devanagari, find_unicode_font
+
+    path = find_unicode_font()
+    if path is None:
+        pytest.skip("no Devanagari font installed here (CI images have none)")
+    assert covers_devanagari(path)
+
+
+def test_with_no_usable_font_the_pdf_explains_instead_of_rendering_boxes(tmp_path, monkeypatch):
+    """The failure mode must be a readable note, never an unreadable letter."""
+    from pypdf import PdfReader
+
+    from app import fonts, pdf
+
+    monkeypatch.setattr(fonts, "CANDIDATES", ["/nonexistent/NoSuchFont.ttf"])
+    fonts.find_unicode_font(refresh=True)
+    monkeypatch.setattr(pdf, "OUT_DIR", str(tmp_path))
+    try:
+        path = pdf.make_complaint_pdf("nofont", "विषय: संभावित अवैध कचरा स्थल।", "Hindi")
+        assert os.path.getsize(path) > 1000
+        text = "".join(p.extract_text() for p in PdfReader(path).pages)
+        assert "No Devanagari font is installed" in text
+    finally:
+        fonts.find_unicode_font(refresh=True)
