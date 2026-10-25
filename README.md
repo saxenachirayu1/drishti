@@ -75,7 +75,8 @@ Brief section 7 (A-01 to A-24), all built:
 - [ ] Add the watsonx keys for Granite, deploy to IBM Code Engine, and send Member A the public URL. The app then uses it with `--dart-define=API_BASE_URL=<url>`.
 
 ### To do: everyone
-- [ ] Review and merge the open branches into `main` (`a/supabase-schema`, `b/pipeline`, `c/api-action-engine-assistant`). C's branch has an older copy of `supabase/migrations/20261023000000_initial_schema.sql`; keep the one from `a/supabase-schema`.
+- [x] Review and merge the open branches into `main` (`a/supabase-schema`, `b/pipeline`, `c/api-action-engine-assistant`). C's branch has an older copy of `supabase/migrations/20261023000000_initial_schema.sql`; keep the one from `a/supabase-schema`.
+  - done: all three merged into `main`; the schema conflict was resolved in favour of `a/supabase-schema` as noted. A follow-up branch `c/auth-ingest-pipeline-fixes` is merged too.
 - [ ] Replace the demo wards with real ward boundaries and officer emails for the pilot cities, and add real government dump lists to `official_sites`.
 - [ ] Arnav and Divyam: the IBM Bob part.
 - [ ] Pitch deck with the real numbers.
