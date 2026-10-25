@@ -30,7 +30,8 @@ Built for the IBM SkillsBuild hackathon. The full brief and requirements are in 
 ### To do: Member C (API)
 - [ ] `api/app/auth.py`: read the role from `payload["app_metadata"]["role"]`, not `user_metadata` (users can edit their own `user_metadata`, so they could make themselves admin). The database already writes the role into `app_metadata`.
 - [ ] `api/app/routers/ingest.py`: `det.model_dump()` → `det.model_dump(mode="json")` (and the same for sites and fire events). Today `/ingest` fails with "Object of type date is not JSON serializable" when it saves a detection.
-- [ ] Set `REPO_BACKEND=supabase`, the service role key and `SUPABASE_JWT_SECRET` (Supabase → Project Settings → API → JWT secret).
+- [ ] Set `REPO_BACKEND=supabase` and the service role key.
+- [ ] `api/app/auth.py`: the project signs user tokens with an **ECC (P-256)** key, so `jwt.decode(..., SUPABASE_JWT_SECRET, algorithms=["HS256"])` rejects every logged-in user. Verify with the public keys instead: `jwt.PyJWKClient("https://ofudjcrzdgltpoyavibr.supabase.co/auth/v1/.well-known/jwks.json")`, `algorithms=["ES256"]`, `audience="authenticated"`. The legacy secret (Project Settings → JWT Keys → Legacy JWT Secret) only verifies the old anon/service_role keys.
 - [ ] `/pipeline/run` already queues work for B's worker through `pipeline_runs`, so no webhook is needed.
 - [ ] Add the watsonx keys for Granite, deploy to IBM Code Engine, and send Member A the public URL. The app then uses it with `--dart-define=API_BASE_URL=<url>`.
 
