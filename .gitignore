@@ -43,3 +43,7 @@ supabase/.temp/
 .DS_Store
 .idea/
 .vscode/
+
+# Flutter web smoke test
+app/node_modules/
+app/web_smoke/out/

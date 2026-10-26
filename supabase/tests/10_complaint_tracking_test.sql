@@ -209,6 +209,12 @@ begin
   select count(*) into n from public.area_lookup('शिवा');
   perform pg_temp.check(n = 1, 'area search in Hindi');
 
+  t := public.route_preview(73.8600, 18.5151, 'debris');
+  perform pg_temp.check(t ->> 'department' = 'pwd' and (t ->> 'ward_no')::int = 1 and (t ->> 'reply_hours')::int = 48,
+                        'route preview for debris on a PWD road');
+  t := public.route_preview(73.80, 18.50, 'burning');
+  perform pg_temp.check(t ->> 'department' = 'swm' and t ->> 'ward_id' is null
+                        and t ->> 'city_id' = '11111111-1111-1111-1111-111111111111', 'route preview outside any ward');
   imp := public.impact_summary();
   perform pg_temp.check((imp ->> 'complaints')::int >= 6 and (imp ->> 'complaints_proven')::int = 0
                         and (imp ->> 'sites_cleared')::int = 1 and imp ? 'replied_on_time_pct',

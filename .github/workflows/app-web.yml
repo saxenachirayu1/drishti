@@ -8,7 +8,7 @@ on:
     branches: [main]
     paths: ["app/**", ".github/workflows/app-web.yml"]
   pull_request:
-    paths: ["app/**"]
+    paths: ["app/**", ".github/workflows/app-web.yml"]
   workflow_dispatch:
 
 permissions:
@@ -34,13 +34,31 @@ jobs:
           cache: true
       - run: flutter pub get
       - run: flutter analyze
-      - run: flutter test test/widget_test.dart
+      # Unit, widget and flow tests. live_supabase_test.dart skips itself
+      # unless DRISHTI_LIVE=1.
+      - run: flutter test
       # API_BASE_URL: set it under Settings -> Secrets and variables -> Actions -> Variables
       # once Member C's API is deployed; empty means the app works directly on Supabase.
       - run: >
           flutter build web --release
           --base-href "/${{ github.event.repository.name }}/"
           --dart-define=API_BASE_URL=${{ vars.API_BASE_URL }}
+      # Open the built site in Chromium: it must render the home page, switch
+      # to Hindi, and log no script errors. Screenshots are kept for review.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Browser smoke test
+        run: |
+          npm install --no-save --no-package-lock playwright@1.48.2
+          npx playwright install --with-deps chromium
+          node web_smoke/smoke.mjs build/web "/${{ github.event.repository.name }}/"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: web-smoke-screenshots
+          path: app/web_smoke/out
+          if-no-files-found: ignore
       - uses: actions/upload-pages-artifact@v3
         if: github.ref == 'refs/heads/main'
         with:

@@ -11,7 +11,7 @@
 --   report_updates      the timeline the resident sees (realtime)
 --   area_follows        residents following an area
 --
--- RPCs: submit_report (now takes a category), post_report_update, transfer_report,
+-- RPCs: submit_report (now takes a category), route_preview, post_report_update, transfer_report,
 -- reopen_report, track_report (public, by ticket), area_lookup (public),
 -- impact_summary (public aggregates).
 --
@@ -268,6 +268,27 @@ end;
 $$;
 revoke execute on function public.submit_report from public, anon;
 grant execute on function public.submit_report to authenticated;
+
+-- Shown on the form before sending: where this complaint would go.
+create or replace function public.route_preview(lng double precision, lat double precision,
+                                                category text default 'dump')
+returns jsonb language sql stable security definer set search_path = public, extensions as $$
+  with pt as (select ST_SetSRID(ST_Point(lng, lat), 4326) as g),
+  road as (select exists (select 1 from public.pwd_roads r, pt
+                          where ST_DWithin(r.geom::geography, pt.g::geography, 30)) as on_road),
+  ward as (select w.* from public.wards w, pt where ST_Contains(w.geom, pt.g) limit 1)
+  select jsonb_build_object(
+    'department', public.route_department(route_preview.category, road.on_road),
+    'on_pwd_road', road.on_road,
+    'reply_hours', (select rc.reply_hours from public.report_categories rc where rc.id = route_preview.category),
+    'ward_id', (select id from ward),
+    'ward_no', (select ward_no from ward),
+    'ward_name', (select name from ward),
+    'city_id', (select c.id from public.cities c, pt where ST_Contains(c.bbox, pt.g) limit 1)
+  )
+  from road;
+$$;
+grant execute on function public.route_preview to anon, authenticated;
 
 -- A department posts an update. Resolving needs an after photo.
 create or replace function public.post_report_update(p_report_id text, p_stage text,

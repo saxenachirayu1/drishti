@@ -7,7 +7,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'config.dart';
 import 'l10n/l10n.dart';
 import 'providers.dart';
-import 'screens/home_shell.dart';
+import 'screens/landing_screen.dart';
+import 'theme/drishti_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,10 +35,7 @@ class DrishtiApp extends ConsumerWidget {
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1D6B5F)),
-          useMaterial3: true,
-        ),
-        home: const HomeShell(),
+        theme: drishtiTheme(hindi: ref.watch(hindiProvider)),
+        home: const LandingScreen(),
       );
 }

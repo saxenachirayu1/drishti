@@ -5,6 +5,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../complaints_providers.dart';
 import '../l10n/l10n.dart';
 import '../models/place.dart';
 import '../models/site.dart';
@@ -102,6 +103,15 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   SiteFilters _filters = const SiteFilters();
   String? _cityId;
 
+  /// Where the home page area search asked the map to open.
+  late final LatLng? _startAt = ref.read(mapFocusProvider);
+
+  @override
+  void initState() {
+    super.initState();
+    if (_startAt != null) _zoom = 14;
+  }
+
   void _goToCity(City? city) {
     setState(() {
       _cityId = city?.id;
@@ -153,6 +163,18 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final highlight = ref.watch(highlightProvider).toSet();
     final offline = ref.watch(repoProvider).offline;
 
+    // A later area search from the home page moves the open map.
+    ref.listen(mapFocusProvider, (_, p) {
+      if (p == null) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        try {
+          _map.move(p, 14);
+        } catch (_) {
+          // Not laid out yet; it opens there on its next build.
+        }
+      });
+    });
+
     // The assistant asked for some sites: frame them once the map is showing.
     ref.listen(highlightProvider, (_, ids) {
       if (ids.isEmpty) return;
@@ -175,7 +197,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       FlutterMap(
         mapController: _map,
         options: MapOptions(
-          initialCenter: _india,
+          initialCenter: _startAt ?? _india,
           initialZoom: _zoom,
           minZoom: 3,
           maxZoom: 19,
