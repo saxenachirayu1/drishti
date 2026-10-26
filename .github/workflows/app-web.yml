@@ -33,13 +33,14 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get
-      - run: flutter analyze
+      - run: tool/ci_annotate.sh "flutter analyze" ' • |error|warning' -- flutter analyze
       # Unit, widget and flow tests. live_supabase_test.dart skips itself
       # unless DRISHTI_LIVE=1.
-      - run: flutter test
+      - run: tool/ci_annotate.sh "flutter test" 'FAIL|Error|Expected|Actual|Which|══|test/.*dart [0-9]+:[0-9]+|\[E\]|Exception|overflow' -- flutter test
       # API_BASE_URL: set it under Settings -> Secrets and variables -> Actions -> Variables
       # once Member C's API is deployed; empty means the app works directly on Supabase.
       - run: >
+          tool/ci_annotate.sh "flutter build web" 'Error|error' --
           flutter build web --release
           --base-href "/${{ github.event.repository.name }}/"
           --dart-define=API_BASE_URL=${{ vars.API_BASE_URL }}
@@ -52,7 +53,7 @@ jobs:
         run: |
           npm install --no-save --no-package-lock playwright@1.48.2
           npx playwright install --with-deps chromium
-          node web_smoke/smoke.mjs build/web "/${{ github.event.repository.name }}/"
+          tool/ci_annotate.sh "web smoke" 'FAIL|Error' -- node web_smoke/smoke.mjs build/web "/${{ github.event.repository.name }}/"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
