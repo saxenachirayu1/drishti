@@ -1,7 +1,9 @@
 # supabase/ (Member A)
 
 - `migrations/20261023000000_initial_schema.sql` the schema: tables, PostGIS, triggers, views, RPCs, RLS, storage, realtime
-- `seed.sql` demo data (cities, wards, sites with six months of detections, fires, scores)
+- `migrations/20261027000000_complaint_tracking.sql` complaints raised by residents: routing by type, ticket codes, the live timeline, area search, impact counts
+- `seed.sql` demo data (cities, wards, sites with six months of detections, fires, scores, localities, one demo PWD road)
+- `tests/` runs every migration and the seed on plain PostgreSQL + PostGIS and checks them (`tests/run.sh`; CI: `.github/workflows/db.yml`)
 
 Set up a new project: paste the migration, then `seed.sql`, into the Supabase SQL editor. Or with the CLI, `supabase db reset`.
 
@@ -42,3 +44,31 @@ RPCs: `ward_for_point(lon, lat, p_city_id)` (used by C), `sites_in_bbox(...)`, `
 - `board`: reads everything. `officer` and `admin`: also act (complaints, site status, reports, runs, audit log). `admin`: changes roles.
 - A user's role is copied into their JWT as `app_metadata.role`, which users cannot edit. **Member C:** read it from there in `api/app/auth.py` (`payload["app_metadata"]["role"]`). `user_metadata` is user-editable, so a role read from it can be forged.
 - Storage buckets: `thumbnails` (public, B's detection chips), `report-photos` (public, citizens upload to `<user id>/...`), `complaints` (private PDFs, staff only).
+
+## Complaint tracking
+
+A resident raises a complaint of one of four types. A trigger gives it a ticket code, a ward and a locality, picks the department and sets the first-reply deadline:
+
+| Type | Goes to | First reply target |
+| --- | --- | --- |
+| `dump` | `swm` municipal SWM office | 24 h |
+| `burning` | `swm` (top of the list) | 2 h |
+| `bin` | `swm` | 24 h |
+| `debris` | `pwd` if within 30 m of a `pwd_roads` line, else `cnd` (municipal C&D cell) | 48 h |
+
+The targets are placeholders until a ward office confirms them (`report_categories.reply_hours`).
+
+The timeline is `report_updates`: `received` (automatic), then `assigned`, `scheduled`, `in_progress` and `resolved`, posted by officers through `post_report_update`. A department cannot move a complaint backwards, and `resolved` needs an after photo. When B's pipeline or an officer sets a site to `cleared`, every `resolved` complaint linked to it becomes `proven_clean`. The resident can `reopen_report`, which restarts the clock.
+
+| RPC | Who | What |
+| --- | --- | --- |
+| `submit_report(lng, lat, note, photo_url, category)` | signed in | files it; returns `ticket`, `department`, `reply_due_at` too |
+| `route_preview(lng, lat, category)` | anyone | where it would go, before sending |
+| `post_report_update(p_report_id, p_stage, p_message, p_photo_path)` | officer, admin | adds to the timeline |
+| `transfer_report(p_report_id, p_department)` | officer, admin | changes department, notes it on the timeline |
+| `reopen_report(p_report_id, p_reason)` | the reporter | reopens a resolved complaint |
+| `track_report(p_ticket)` | anyone | the public view by code: stage, department, ward and updates, never the reporter, note or photos |
+| `area_lookup(q)` | anyone | home page search by area name (English or Hindi) or PIN code, with open sites within 3 km and the next Sentinel-2 pass |
+| `impact_summary(p_city_id)` | anyone | counts for the impact page |
+
+`report_map` now also returns `ticket`, `category`, `department`, `ward_no`, `ward_name`, `locality`, `stage`, `reply_due_at`, `first_reply_at`, `resolved_at` and `overdue`. Department photos go to the private `report-updates` bucket under `<report id>/`, readable by staff and the reporter. `report_updates` is in the realtime publication, so the reporter's timeline updates live.
