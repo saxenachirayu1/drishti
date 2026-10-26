@@ -4,6 +4,33 @@ India's garbage, seen from space. Drishti finds illegal waste dumps and open bur
 
 Built for the IBM SkillsBuild hackathon. The full brief and requirements are in the team doc (see `docs/`).
 
+## Run the whole thing
+
+```bash
+./run-demo.sh
+```
+
+One command, **no credentials needed**. It sets up the API, runs the test
+suite, starts the service, and — if Flutter is installed — builds the web
+dashboard pointed at the local API and serves it.
+
+- API docs: http://127.0.0.1:8000/docs
+- Dashboard: http://127.0.0.1:5173
+
+Out of the box it runs fully offline: in-memory database, template complaint
+drafting, console "email". Put real values in `api/.env` and the same code
+switches to Supabase, watsonx Granite and Resend with no code change —
+`GET /health` reports which of them are live.
+
+**On Granite:** the API never hard-depends on the model. `call_granite()`
+returns `None` whenever watsonx is unconfigured or unreachable, and the
+template drafter takes over, so a missing or broken key degrades the wording
+rather than taking the service down. The complaint still cites the Solid Waste
+Management Rules, 2016 verbatim, still refuses to accuse anyone, still states
+its confidence, and still renders Hindi correctly — because those rules live in
+code and tests, not in a prompt. That is why the demo above works with no IBM
+account at all.
+
 ## Repo structure
 
 | Folder | What lives here | Owner |
