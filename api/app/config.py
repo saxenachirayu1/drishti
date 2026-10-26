@@ -135,6 +135,13 @@ class Settings:
         # Citizen-report matching (C-13)
         self.REPORT_MATCH_RADIUS_M = _float("REPORT_MATCH_RADIUS_M", 150.0)
 
+        # Browser origins allowed to call this API. "*" is right for local
+        # development; set it to the dashboard's origin before the service is
+        # public, so a hostile page cannot drive it with a user's token.
+        self.ALLOWED_ORIGINS = [
+            o.strip() for o in os.getenv("ALLOWED_ORIGINS", "*").split(",") if o.strip()
+        ]
+
         # --- Dev convenience -------------------------------------------------
         # Dev auth bypass: when there is no JWT secret, treat every request as
         # this role so you can test without real Supabase logins.
@@ -185,6 +192,9 @@ class Settings:
             problems.append("REPO_BACKEND=supabase but SUPABASE_URL is blank")
         if not 0 < self.VERIFY_SHRINK_RATIO < 1:
             problems.append("VERIFY_SHRINK_RATIO must be between 0 and 1")
+        if "*" in self.ALLOWED_ORIGINS and not self.offline:
+            problems.append("ALLOWED_ORIGINS is '*' while pointed at a real "
+                            "project; set it to the dashboard's origin")
         return problems
 
 

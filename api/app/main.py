@@ -54,7 +54,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],          # tighten to the app's domains for deploy (N-10)
+    allow_origins=settings.ALLOWED_ORIGINS,   # ALLOWED_ORIGINS in .env (N-10)
     allow_methods=["*"],
     allow_headers=["*"],
 )
