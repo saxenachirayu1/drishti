@@ -29,8 +29,7 @@ class DrishtiRepo {
   User? get user => db.auth.currentUser;
   String? get accessToken => db.auth.currentSession?.accessToken;
 
-  List<T> _rows<T>(List<Map<String, dynamic>> rows, T Function(Map<String, dynamic>) f) =>
-      [for (final r in rows) f(r)];
+  List<T> _rows<T>(List<Map<String, dynamic>> rows, T Function(Map<String, dynamic>) f) => [for (final r in rows) f(r)];
 
   /// Runs a public read; on success keeps a copy, on a network failure returns the copy.
   Future<List<Map<String, dynamic>>> _cached(String key, Future<List<Map<String, dynamic>>> Function() fetch) async {
@@ -57,8 +56,7 @@ class DrishtiRepo {
   Future<void> verifyCode(String email, String code) =>
       db.auth.verifyOTP(email: email, token: code, type: OtpType.email);
 
-  Future<void> signIn(String email, String password) =>
-      db.auth.signInWithPassword(email: email, password: password);
+  Future<void> signIn(String email, String password) => db.auth.signInWithPassword(email: email, password: password);
 
   Future<AuthResponse> signUp(String email, String password, String fullName) =>
       db.auth.signUp(email: email, password: password, data: {'full_name': fullName});
@@ -79,8 +77,7 @@ class DrishtiRepo {
   Future<List<Site>> sites({String? cityId}) async {
     var q = db.from('site_map').select();
     if (cityId != null) q = q.eq('city_id', cityId);
-    return _rows(
-        await _cached('sites:${cityId ?? 'all'}', () => q.order('last_seen', ascending: false)), Site.fromMap);
+    return _rows(await _cached('sites:${cityId ?? 'all'}', () => q.order('last_seen', ascending: false)), Site.fromMap);
   }
 
   Future<Site?> site(String id) async {
@@ -89,8 +86,9 @@ class DrishtiRepo {
   }
 
   Future<List<Detection>> timeline(String siteId) async => _rows(
-      await db.from('detection_timeline').select().eq('site_id', siteId).order('detected_on', ascending: true),
-      Detection.fromMap);
+    await db.from('detection_timeline').select().eq('site_id', siteId).order('detected_on', ascending: true),
+    Detection.fromMap,
+  );
 
   Future<List<FireEvent>> fires({String? siteId, int limit = 500}) async {
     var q = db.from('fire_map').select();
@@ -100,19 +98,23 @@ class DrishtiRepo {
   }
 
   Future<List<CityScore>> leaderboard() async => _rows(
-      await _cached('leaderboard', () => db.from('city_leaderboard').select().order('rank', ascending: true)),
-      CityScore.fromMap);
+    await _cached('leaderboard', () => db.from('city_leaderboard').select().order('rank', ascending: true)),
+    CityScore.fromMap,
+  );
 
   /// Every month's score for one city, oldest first (A-20 trend).
   Future<List<(String, int)>> scoreHistory(String cityId) async {
-    final rows = await _cached('scores:$cityId',
-        () => db.from('city_scores').select('period, score').eq('city_id', cityId).order('period', ascending: true));
+    final rows = await _cached(
+      'scores:$cityId',
+      () => db.from('city_scores').select('period, score').eq('city_id', cityId).order('period', ascending: true),
+    );
     return [for (final r in rows) (r['period'] as String, (r['score'] as num?)?.round() ?? 0)];
   }
 
   Future<List<Verification>> verifications(String siteId) async => _rows(
-      await db.from('verifications').select().eq('site_id', siteId).order('checked_at', ascending: false),
-      Verification.fromMap);
+    await db.from('verifications').select().eq('site_id', siteId).order('checked_at', ascending: false),
+    Verification.fromMap,
+  );
 
   /// The public sees sent and closed complaints; staff also see drafts.
   Future<List<Complaint>> complaints({String? siteId, String? status}) async {
@@ -139,11 +141,10 @@ class DrishtiRepo {
   Future<void> updateMyProfile({String? fullName, String? language, String? cityId}) async {
     final uid = user?.id;
     if (uid == null) return;
-    await db.from('profiles').update({
-      'full_name': ?fullName,
-      'language': ?language,
-      'city_id': ?cityId,
-    }).eq('user_id', uid);
+    await db
+        .from('profiles')
+        .update({'full_name': ?fullName, 'language': ?language, 'city_id': ?cityId})
+        .eq('user_id', uid);
   }
 
   Future<List<Profile>> profiles() async =>
@@ -169,7 +170,9 @@ class DrishtiRepo {
     final upright = img.bakeOrientation(decoded)..exif = img.ExifData();
     final clean = Uint8List.fromList(img.encodeJpg(upright, quality: 85));
     final name = '$uid/${DateTime.now().millisecondsSinceEpoch}.jpg';
-    await db.storage.from('reports').uploadBinary(name, clean, fileOptions: const FileOptions(contentType: 'image/jpeg'));
+    await db.storage
+        .from('reports')
+        .uploadBinary(name, clean, fileOptions: const FileOptions(contentType: 'image/jpeg'));
     return 'reports/$name';
   }
 
@@ -190,8 +193,7 @@ class DrishtiRepo {
     String? note,
     String? photoUrl,
   }) async {
-    final res = await db.rpc('submit_report',
-        params: {'lng': lng, 'lat': lat, 'note': note, 'photo_url': photoUrl});
+    final res = await db.rpc('submit_report', params: {'lng': lng, 'lat': lat, 'note': note, 'photo_url': photoUrl});
     return Map<String, dynamic>.from(res as Map);
   }
 
@@ -199,8 +201,9 @@ class DrishtiRepo {
     final uid = user?.id;
     if (uid == null) return const [];
     return _rows(
-        await db.from('report_map').select().eq('user_id', uid).order('created_at', ascending: false),
-        CitizenReport.fromMap);
+      await db.from('report_map').select().eq('user_id', uid).order('created_at', ascending: false),
+      CitizenReport.fromMap,
+    );
   }
 
   Future<List<CitizenReport>> allReports({String? status, String? siteId}) async {
@@ -212,31 +215,35 @@ class DrishtiRepo {
 
   // --- officer actions -------------------------------------------------------
 
-  Future<Complaint> insertComplaint({
-    required String siteId,
-    required String text,
-    required String language,
-  }) async =>
-      Complaint.fromMap(await db
-          .from('complaints')
-          .insert({'site_id': siteId, 'draft_text': text, 'language': language})
-          .select()
-          .single());
+  Future<Complaint> insertComplaint({required String siteId, required String text, required String language}) async =>
+      Complaint.fromMap(
+        await db
+            .from('complaints')
+            .insert({'site_id': siteId, 'draft_text': text, 'language': language})
+            .select()
+            .single(),
+      );
 
   Future<Complaint> updateComplaint(String id, Map<String, dynamic> fields) async =>
       Complaint.fromMap(await db.from('complaints').update(fields).eq('id', id).select().single());
 
-  Future<void> updateSite(String id, Map<String, dynamic> fields) =>
-      db.from('sites').update(fields).eq('id', id);
+  Future<void> updateSite(String id, Map<String, dynamic> fields) => db.from('sites').update(fields).eq('id', id);
 
   /// Sites an admin has not reviewed yet, newest first (A-22).
   Future<List<Site>> unreviewedSites() async => _rows(
-      await db.from('site_map').select().isFilter('reviewed_at', null).neq('status', 'dismissed')
-          .order('first_seen', ascending: false),
-      Site.fromMap);
+    await db
+        .from('site_map')
+        .select()
+        .isFilter('reviewed_at', null)
+        .neq('status', 'dismissed')
+        .order('first_seen', ascending: false),
+    Site.fromMap,
+  );
 
-  Future<void> markReviewed(String siteId) => db.from('sites').update(
-      {'reviewed_at': DateTime.now().toUtc().toIso8601String(), 'reviewed_by': user?.id}).eq('id', siteId);
+  Future<void> markReviewed(String siteId) => db
+      .from('sites')
+      .update({'reviewed_at': DateTime.now().toUtc().toIso8601String(), 'reviewed_by': user?.id})
+      .eq('id', siteId);
 
   Future<void> reviewReport(String id, {required String status, String? linkedSiteId}) =>
       db.from('citizen_reports').update({'status': status, 'linked_site_id': linkedSiteId}).eq('id', id);
@@ -246,13 +253,12 @@ class DrishtiRepo {
     required String result,
     String? complaintId,
     String? evidenceDetectionId,
-  }) =>
-      db.from('verifications').insert({
-        'site_id': siteId,
-        'result': result,
-        'complaint_id': complaintId,
-        'evidence_detection_id': evidenceDetectionId,
-      });
+  }) => db.from('verifications').insert({
+    'site_id': siteId,
+    'result': result,
+    'complaint_id': complaintId,
+    'evidence_detection_id': evidenceDetectionId,
+  });
 
   Future<void> refreshScore(String cityId) => db.rpc('refresh_city_score', params: {'p_city_id': cityId});
 
@@ -261,8 +267,9 @@ class DrishtiRepo {
       db.from('pipeline_runs').insert({'city_id': cityId, 'kind': kind, 'params': params ?? {}});
 
   Future<List<PipelineRun>> runs() async => _rows(
-      await db.from('pipeline_runs').select().order('queued_at', ascending: false).limit(50),
-      PipelineRun.fromMap);
+    await db.from('pipeline_runs').select().order('queued_at', ascending: false).limit(50),
+    PipelineRun.fromMap,
+  );
 
   Future<void> audit(String action, String entity, String entityId, [Map<String, dynamic>? details]) async {
     final uid = user?.id;

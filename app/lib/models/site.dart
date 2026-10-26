@@ -55,28 +55,28 @@ class Site {
   bool get highFireRisk => fireRisk >= 60;
 
   factory Site.fromMap(Map<String, dynamic> m) => Site(
-        id: m['id'] as String,
-        cityId: m['city_id'] as String,
-        wardId: m['ward_id'] as String?,
-        wardNo: asInt(m['ward_no']),
-        wardName: m['ward_name'] as String?,
-        officerEmail: m['officer_email'] as String?,
-        status: m['status'] as String? ?? 'active',
-        areaM2: asDouble(m['area_m2']) ?? 0,
-        fireRisk: asInt(m['fire_risk']) ?? 0,
-        nearWater: m['near_water'] as bool? ?? false,
-        confidence: asDouble(m['confidence']),
-        growth: m['growth'] as String?,
-        firstSeen: asDate(m['first_seen']),
-        lastSeen: asDate(m['last_seen']),
-        clearedCandidate: m['cleared_candidate'] as bool? ?? false,
-        onOfficialRecord: m['on_official_record'] as bool? ?? false,
-        lat: asDouble(m['lat']),
-        lng: asDouble(m['lng']),
-        rings: outerRings(m['geojson']),
-        dismissedReason: m['dismissed_reason'] as String?,
-        reviewedAt: asDate(m['reviewed_at']),
-      );
+    id: m['id'] as String,
+    cityId: m['city_id'] as String,
+    wardId: m['ward_id'] as String?,
+    wardNo: asInt(m['ward_no']),
+    wardName: m['ward_name'] as String?,
+    officerEmail: m['officer_email'] as String?,
+    status: m['status'] as String? ?? 'active',
+    areaM2: asDouble(m['area_m2']) ?? 0,
+    fireRisk: asInt(m['fire_risk']) ?? 0,
+    nearWater: m['near_water'] as bool? ?? false,
+    confidence: asDouble(m['confidence']),
+    growth: m['growth'] as String?,
+    firstSeen: asDate(m['first_seen']),
+    lastSeen: asDate(m['last_seen']),
+    clearedCandidate: m['cleared_candidate'] as bool? ?? false,
+    onOfficialRecord: m['on_official_record'] as bool? ?? false,
+    lat: asDouble(m['lat']),
+    lng: asDouble(m['lng']),
+    rings: outerRings(m['geojson']),
+    dismissedReason: m['dismissed_reason'] as String?,
+    reviewedAt: asDate(m['reviewed_at']),
+  );
 }
 
 /// A row of `detection_timeline`: one sighting of a site in one scene.
@@ -102,15 +102,15 @@ class Detection {
   final List<List<LatLng>> rings;
 
   factory Detection.fromMap(Map<String, dynamic> m) => Detection(
-        id: m['id'] as String,
-        siteId: m['site_id'] as String,
-        sceneId: m['scene_id'] as String?,
-        detectedOn: asDate(m['detected_on']),
-        areaM2: asDouble(m['area_m2']),
-        confidence: asDouble(m['confidence']),
-        thumbUrl: m['thumb_url'] as String?,
-        rings: outerRings(m['geojson']),
-      );
+    id: m['id'] as String,
+    siteId: m['site_id'] as String,
+    sceneId: m['scene_id'] as String?,
+    detectedOn: asDate(m['detected_on']),
+    areaM2: asDouble(m['area_m2']),
+    confidence: asDouble(m['confidence']),
+    thumbUrl: m['thumb_url'] as String?,
+    rings: outerRings(m['geojson']),
+  );
 }
 
 /// A row of `fire_map`: a NASA FIRMS hotspot.
@@ -140,14 +140,14 @@ class FireEvent {
   LatLng get point => LatLng(lat, lng);
 
   factory FireEvent.fromMap(Map<String, dynamic> m) => FireEvent(
-        id: m['id'] as String,
-        cityId: m['city_id'] as String?,
-        siteId: m['site_id'] as String?,
-        detectedAt: asDate(m['detected_at']),
-        frp: asDouble(m['frp']),
-        confidence: m['confidence']?.toString(),
-        source: m['source'] as String?,
-        lat: asDouble(m['lat'])!,
-        lng: asDouble(m['lng'])!,
-      );
+    id: m['id'] as String,
+    cityId: m['city_id'] as String?,
+    siteId: m['site_id'] as String?,
+    detectedAt: asDate(m['detected_at']),
+    frp: asDouble(m['frp']),
+    confidence: m['confidence']?.toString(),
+    source: m['source'] as String?,
+    lat: asDouble(m['lat'])!,
+    lng: asDouble(m['lng'])!,
+  );
 }

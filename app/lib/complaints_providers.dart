@@ -25,54 +25,64 @@ final dsProvider = Provider<DS>((ref) => DS(ref.watch(hindiProvider)));
 /// A place another screen wants the map to show (the home page area search).
 final mapFocusProvider = NotifierProvider<ValueNotifierOf<LatLng?>, LatLng?>(() => ValueNotifierOf(null));
 
+/// A stream that loads once, then again on every [trigger] event (and every
+/// [every], if given), and stops cleanly when the provider is disposed.
+Stream<T> _refreshing<T>(Ref ref, Future<T> Function() load, {Stream<void>? trigger, Duration? every}) {
+  final out = StreamController<T>();
+  var closed = false;
+  Future<void> run() async {
+    try {
+      final v = await load();
+      if (!closed) out.add(v);
+    } catch (e, st) {
+      if (!closed) out.addError(e, st);
+    }
+  }
+
+  run();
+  final sub = trigger?.listen((_) => run());
+  final timer = every == null ? null : Timer.periodic(every, (_) => run());
+  ref.onDispose(() {
+    closed = true;
+    sub?.cancel();
+    timer?.cancel();
+    out.close();
+  });
+  return out.stream;
+}
+
 /// Ticks every minute so "due in" and "overdue" stay true without a reload.
-final clockProvider = StreamProvider<DateTime>((ref) async* {
-  yield DateTime.now();
-  yield* Stream.periodic(const Duration(minutes: 1), (_) => DateTime.now());
-});
+final clockProvider = StreamProvider<DateTime>(
+  (ref) => _refreshing(ref, () async => DateTime.now(), every: const Duration(minutes: 1)),
+);
 
 /// The signed-in user's complaints, live.
-final myTicketsProvider = StreamProvider.autoDispose<List<Ticket>>((ref) async* {
+final myTicketsProvider = StreamProvider.autoDispose<List<Ticket>>((ref) {
   final me = ref.watch(meProvider);
   final api = ref.watch(complaintsApiProvider);
-  if (me == null) {
-    yield const [];
-    return;
-  }
-  yield await api.mine();
-  await for (final _ in api.queueChanges()) {
-    yield await api.mine();
-  }
+  if (me == null) return Stream.value(const <Ticket>[]);
+  return _refreshing(ref, api.mine, trigger: api.queueChanges());
 });
 
 /// One complaint with its timeline, for its reporter or staff. Live.
-final ticketProvider = StreamProvider.autoDispose.family<Ticket?, String>((ref, id) async* {
+final ticketProvider = StreamProvider.autoDispose.family<Ticket?, String>((ref, id) {
   ref.watch(meProvider);
   final api = ref.watch(complaintsApiProvider);
-  yield await api.ticket(id);
-  await for (final _ in api.ticketChanges(id)) {
-    yield await api.ticket(id);
-  }
+  return _refreshing(ref, () => api.ticket(id), trigger: api.ticketChanges(id));
 });
 
 /// Public tracking by code. Signed-out viewers cannot subscribe to the
 /// timeline, so this refreshes every 30 seconds instead.
-final trackProvider = StreamProvider.autoDispose.family<Ticket?, String>((ref, code) async* {
+final trackProvider = StreamProvider.autoDispose.family<Ticket?, String>((ref, code) {
   final api = ref.watch(complaintsApiProvider);
-  yield await api.track(code);
-  await for (final _ in Stream.periodic(const Duration(seconds: 30))) {
-    yield await api.track(code);
-  }
+  return _refreshing(ref, () => api.track(code), every: const Duration(seconds: 30));
 });
 
 /// The department queue (all departments when null). Live.
-final queueProvider = StreamProvider.autoDispose.family<List<Ticket>, String?>((ref, dept) async* {
+final queueProvider = StreamProvider.autoDispose.family<List<Ticket>, String?>((ref, dept) {
   ref.watch(meProvider);
   final api = ref.watch(complaintsApiProvider);
-  yield await api.queue(department: dept);
-  await for (final _ in api.queueChanges()) {
-    yield await api.queue(department: dept);
-  }
+  return _refreshing(ref, () => api.queue(department: dept), trigger: api.queueChanges());
 });
 
 final impactProvider = FutureProvider.autoDispose.family<Impact, String?>(

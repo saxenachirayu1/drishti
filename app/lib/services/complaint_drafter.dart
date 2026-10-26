@@ -16,9 +16,7 @@ class ComplaintDrafter {
     final area = site.areaM2.round();
     final first = site.firstSeen == null ? '-' : DateFormat('d MMM yyyy').format(site.firstSeen!);
     final last = site.lastSeen == null ? '-' : DateFormat('d MMM yyyy').format(site.lastSeen!);
-    final coords = site.point == null
-        ? '-'
-        : '${site.lat!.toStringAsFixed(5)}, ${site.lng!.toStringAsFixed(5)}';
+    final coords = site.point == null ? '-' : '${site.lat!.toStringAsFixed(5)}, ${site.lng!.toStringAsFixed(5)}';
     final mapLink = site.point == null ? '' : 'https://www.google.com/maps?q=${site.lat},${site.lng}';
     final conf = site.confidence == null ? null : (site.confidence! * 100).round();
 

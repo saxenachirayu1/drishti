@@ -33,8 +33,7 @@ final apiProvider = Provider<DrishtiApi>((ref) {
   return DrishtiApi(AppConfig.apiBaseUrl, () => repo.accessToken);
 });
 
-final actionsProvider =
-    Provider<ActionEngine>((ref) => ActionEngine(ref.watch(repoProvider), ref.watch(apiProvider)));
+final actionsProvider = Provider<ActionEngine>((ref) => ActionEngine(ref.watch(repoProvider), ref.watch(apiProvider)));
 
 // --- auth and profile ----------------------------------------------------------
 
@@ -81,8 +80,9 @@ class ValueNotifierOf<T> extends Notifier<T> {
 final tabRequestProvider = NotifierProvider<ValueNotifierOf<String?>, String?>(() => ValueNotifierOf(null));
 
 /// Site ids the assistant asked the map to highlight (A-21).
-final highlightProvider =
-    NotifierProvider<ValueNotifierOf<List<String>>, List<String>>(() => ValueNotifierOf(const []));
+final highlightProvider = NotifierProvider<ValueNotifierOf<List<String>>, List<String>>(
+  () => ValueNotifierOf(const []),
+);
 
 // --- map data -------------------------------------------------------------------------
 
@@ -128,11 +128,13 @@ final siteProvider = FutureProvider.family<Site?, String>((ref, id) {
   return ref.watch(repoProvider).site(id);
 });
 
-final timelineProvider =
-    FutureProvider.family<List<Detection>, String>((ref, id) => ref.watch(actionsProvider).timeline(id));
+final timelineProvider = FutureProvider.family<List<Detection>, String>(
+  (ref, id) => ref.watch(actionsProvider).timeline(id),
+);
 
-final siteFiresProvider =
-    FutureProvider.family<List<FireEvent>, String>((ref, id) => ref.watch(repoProvider).fires(siteId: id));
+final siteFiresProvider = FutureProvider.family<List<FireEvent>, String>(
+  (ref, id) => ref.watch(repoProvider).fires(siteId: id),
+);
 
 final siteComplaintsProvider = FutureProvider.family<List<Complaint>, String>((ref, id) {
   ref.watch(userIdProvider);
@@ -149,16 +151,19 @@ final complaintProvider = FutureProvider.family<Complaint?, String>((ref, id) {
   return ref.watch(repoProvider).complaint(id);
 });
 
-final verificationsProvider =
-    FutureProvider.family<List<Verification>, String>((ref, id) => ref.watch(repoProvider).verifications(id));
+final verificationsProvider = FutureProvider.family<List<Verification>, String>(
+  (ref, id) => ref.watch(repoProvider).verifications(id),
+);
 
 final leaderboardProvider = FutureProvider<List<CityScore>>((ref) => ref.watch(repoProvider).leaderboard());
 
-final scoreHistoryProvider =
-    FutureProvider.family<List<(String, int)>, String>((ref, id) => ref.watch(repoProvider).scoreHistory(id));
+final scoreHistoryProvider = FutureProvider.family<List<(String, int)>, String>(
+  (ref, id) => ref.watch(repoProvider).scoreHistory(id),
+);
 
-final photoUrlProvider =
-    FutureProvider.family<String?, String>((ref, stored) => ref.watch(repoProvider).photoUrl(stored));
+final photoUrlProvider = FutureProvider.family<String?, String>(
+  (ref, stored) => ref.watch(repoProvider).photoUrl(stored),
+);
 
 // --- citizen and officer lists -----------------------------------------------------------
 

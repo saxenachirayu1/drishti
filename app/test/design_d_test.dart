@@ -9,6 +9,7 @@ import 'package:drishti/screens/impact_screen.dart';
 import 'package:drishti/screens/landing_screen.dart';
 import 'package:drishti/screens/raise_screen.dart';
 import 'package:drishti/screens/track_screen.dart';
+import 'package:drishti/services/drishti_repo.dart';
 import 'package:drishti/services/tracking_logic.dart';
 import 'package:drishti/theme/d_strings.dart';
 import 'package:drishti/theme/drishti_theme.dart';
@@ -16,6 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'fake_complaints.dart';
 
@@ -43,6 +45,16 @@ Future<void> _pump(WidgetTester tester, Widget child, FakeComplaints fake, {Size
         complaintsApiProvider.overrideWithValue(fake),
         liveDeviceProvider.overrideWithValue(false),
         citiesProvider.overrideWith((ref) async => const [City(id: 'pune', name: 'Pune')]),
+        // The sign-in form reads the repo; a client that is never called.
+        repoProvider.overrideWithValue(
+          DrishtiRepo(
+            SupabaseClient(
+              'http://localhost:9',
+              'test-anon-key',
+              authOptions: const AuthClientOptions(autoRefreshToken: false),
+            ),
+          ),
+        ),
       ],
       child: MaterialApp(
         theme: drishtiTheme(),
@@ -332,6 +344,8 @@ void main() {
       expect(find.textContaining('Ward 1 · Demo Ward · ${_en.deptName('pwd')}'), findsOneWidget);
 
       await tester.enterText(find.byKey(const ValueKey('raise-note')), 'Rubble across the lane');
+      ScaffoldMessenger.of(tester.element(find.byType(RaiseScreen))).removeCurrentSnackBar();
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('raise-submit')));
       await tester.pumpAndSettle();
       expect(fake.calls, contains('submit:debris'));
@@ -399,7 +413,7 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('reopen')));
       await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField).last, 'Back again');
+      await tester.enterText(find.byKey(const ValueKey('reopen-reason')), 'Back again');
       await tester.tap(find.text(_en.reopenSend));
       await tester.pumpAndSettle();
       expect(fake.calls, contains('reopen:r1:Back again'));

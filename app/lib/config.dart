@@ -11,8 +11,7 @@ class AppConfig {
 
   static const supabaseAnonKey = String.fromEnvironment(
     'SUPABASE_ANON_KEY',
-    defaultValue:
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mdWRqY3J6ZGdsdHBveWF2aWJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4NTcxMzIsImV4cCI6MjEwODQzMzEzMn0.1Y2X2NRVGdO7zKB_K4pSzyoyNDCZ8pJJSNRj0fn0k5A',
+    defaultValue: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mdWRqY3J6ZGdsdHBveWF2aWJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4NTcxMzIsImV4cCI6MjEwODQzMzEzMn0.1Y2X2NRVGdO7zKB_K4pSzyoyNDCZ8pJJSNRj0fn0k5A',
   );
 
   /// Member C's FastAPI service. Empty = the app does everything itself

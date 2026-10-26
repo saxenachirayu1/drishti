@@ -30,28 +30,22 @@ class Complaint {
   final DateTime? createdAt;
 
   factory Complaint.fromMap(Map<String, dynamic> m) => Complaint(
-        id: m['id'] as String,
-        siteId: m['site_id'] as String,
-        wardId: m['ward_id'] as String?,
-        draftText: m['draft_text'] as String? ?? '',
-        language: m['language'] as String? ?? 'English',
-        pdfUrl: m['pdf_url'] as String?,
-        status: m['status'] as String? ?? 'draft',
-        approvedBy: m['approved_by'] as String?,
-        sentAt: asDate(m['sent_at']),
-        closedAt: asDate(m['closed_at']),
-        createdAt: asDate(m['created_at']),
-      );
+    id: m['id'] as String,
+    siteId: m['site_id'] as String,
+    wardId: m['ward_id'] as String?,
+    draftText: m['draft_text'] as String? ?? '',
+    language: m['language'] as String? ?? 'English',
+    pdfUrl: m['pdf_url'] as String?,
+    status: m['status'] as String? ?? 'draft',
+    approvedBy: m['approved_by'] as String?,
+    sentAt: asDate(m['sent_at']),
+    closedAt: asDate(m['closed_at']),
+    createdAt: asDate(m['created_at']),
+  );
 }
 
 class Verification {
-  const Verification({
-    required this.id,
-    required this.siteId,
-    required this.result,
-    this.complaintId,
-    this.checkedAt,
-  });
+  const Verification({required this.id, required this.siteId, required this.result, this.complaintId, this.checkedAt});
 
   final String id;
   final String siteId;
@@ -60,12 +54,12 @@ class Verification {
   final DateTime? checkedAt;
 
   factory Verification.fromMap(Map<String, dynamic> m) => Verification(
-        id: m['id'] as String,
-        siteId: m['site_id'] as String,
-        complaintId: m['complaint_id'] as String?,
-        result: m['result'] as String,
-        checkedAt: asDate(m['checked_at']),
-      );
+    id: m['id'] as String,
+    siteId: m['site_id'] as String,
+    complaintId: m['complaint_id'] as String?,
+    result: m['result'] as String,
+    checkedAt: asDate(m['checked_at']),
+  );
 }
 
 /// A row of `report_map`.
@@ -97,17 +91,17 @@ class CitizenReport {
   LatLng? get point => lat == null || lng == null ? null : LatLng(lat!, lng!);
 
   factory CitizenReport.fromMap(Map<String, dynamic> m) => CitizenReport(
-        id: m['id'] as String,
-        userId: m['user_id'] as String?,
-        cityId: m['city_id'] as String?,
-        note: m['note'] as String?,
-        photoUrl: m['photo_url'] as String?,
-        status: m['status'] as String? ?? 'new',
-        linkedSiteId: m['linked_site_id'] as String?,
-        createdAt: asDate(m['created_at']),
-        lat: asDouble(m['lat']),
-        lng: asDouble(m['lng']),
-      );
+    id: m['id'] as String,
+    userId: m['user_id'] as String?,
+    cityId: m['city_id'] as String?,
+    note: m['note'] as String?,
+    photoUrl: m['photo_url'] as String?,
+    status: m['status'] as String? ?? 'new',
+    linkedSiteId: m['linked_site_id'] as String?,
+    createdAt: asDate(m['created_at']),
+    lat: asDouble(m['lat']),
+    lng: asDouble(m['lng']),
+  );
 }
 
 class PipelineRun {
@@ -138,18 +132,18 @@ class PipelineRun {
   final String? error;
 
   factory PipelineRun.fromMap(Map<String, dynamic> m) => PipelineRun(
-        id: m['id'] as String,
-        cityId: m['city_id'] as String?,
-        kind: m['kind'] as String? ?? 'detect',
-        status: m['status'] as String? ?? 'queued',
-        queuedAt: asDate(m['queued_at']),
-        startedAt: asDate(m['started_at']),
-        finishedAt: asDate(m['finished_at']),
-        scenesProcessed: asInt(m['scenes_processed']) ?? 0,
-        sitesNew: asInt(m['sites_new']) ?? 0,
-        sitesUpdated: asInt(m['sites_updated']) ?? 0,
-        error: m['error'] as String?,
-      );
+    id: m['id'] as String,
+    cityId: m['city_id'] as String?,
+    kind: m['kind'] as String? ?? 'detect',
+    status: m['status'] as String? ?? 'queued',
+    queuedAt: asDate(m['queued_at']),
+    startedAt: asDate(m['started_at']),
+    finishedAt: asDate(m['finished_at']),
+    scenesProcessed: asInt(m['scenes_processed']) ?? 0,
+    sitesNew: asInt(m['sites_new']) ?? 0,
+    sitesUpdated: asInt(m['sites_updated']) ?? 0,
+    error: m['error'] as String?,
+  );
 }
 
 class Profile {
@@ -180,13 +174,13 @@ class Profile {
   bool get isAdmin => role == 'admin';
 
   factory Profile.fromMap(Map<String, dynamic> m) => Profile(
-        userId: m['user_id'] as String,
-        email: m['email'] as String?,
-        fullName: m['full_name'] as String?,
-        role: m['role'] as String? ?? 'citizen',
-        cityId: m['city_id'] as String?,
-        wardId: m['ward_id'] as String?,
-        language: m['language'] as String? ?? 'English',
-        department: m['department'] as String?,
-      );
+    userId: m['user_id'] as String,
+    email: m['email'] as String?,
+    fullName: m['full_name'] as String?,
+    role: m['role'] as String? ?? 'citizen',
+    cityId: m['city_id'] as String?,
+    wardId: m['ward_id'] as String?,
+    language: m['language'] as String? ?? 'English',
+    department: m['department'] as String?,
+  );
 }

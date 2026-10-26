@@ -289,26 +289,11 @@ class TicketDetail extends ConsumerWidget {
   final bool showActions;
 
   Future<void> _reopen(BuildContext context, WidgetRef ref, DS ds) async {
-    final reason = TextEditingController();
-    final ok = await showDialog<bool>(
+    final text = await showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(ds.reopenTitle, style: DText(ds.hindi).head(22)),
-        content: TextField(
-          controller: reason,
-          autofocus: true,
-          maxLines: 3,
-          decoration: InputDecoration(hintText: ds.reopenHint),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(ds.cancel)),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(ds.reopenSend)),
-        ],
-      ),
+      builder: (_) => _ReopenDialog(ds: ds),
     );
-    final text = reason.text.trim();
-    reason.dispose();
-    if (ok != true || !context.mounted) return;
+    if (text == null || !context.mounted) return;
     final done = await guarded(
       context,
       () => ref.read(complaintsApiProvider).reopen(ticket.id, reason: text),
@@ -465,6 +450,44 @@ class TicketDetail extends ConsumerWidget {
               onPressed: () => _reopen(context, ref, ds),
             ),
           ),
+      ],
+    );
+  }
+}
+
+/// Asks what is still wrong. Returns the text, or null when cancelled.
+class _ReopenDialog extends StatefulWidget {
+  const _ReopenDialog({required this.ds});
+  final DS ds;
+
+  @override
+  State<_ReopenDialog> createState() => _ReopenDialogState();
+}
+
+class _ReopenDialogState extends State<_ReopenDialog> {
+  final _reason = TextEditingController();
+
+  @override
+  void dispose() {
+    _reason.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ds = widget.ds;
+    return AlertDialog(
+      title: Text(ds.reopenTitle, style: DText(ds.hindi).head(22)),
+      content: TextField(
+        key: const ValueKey('reopen-reason'),
+        controller: _reason,
+        autofocus: true,
+        maxLines: 3,
+        decoration: InputDecoration(hintText: ds.reopenHint),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(ds.cancel)),
+        FilledButton(onPressed: () => Navigator.pop(context, _reason.text.trim()), child: Text(ds.reopenSend)),
       ],
     );
   }

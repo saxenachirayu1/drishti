@@ -13,7 +13,7 @@ emit() {
 if [ "$code" -ne 0 ]; then
   failed=$(grep -E "❌|\[E\]" /tmp/ci_out.txt | sed 's#.*/app/##' | awk '!seen[$0]++' | head -40)
   [ -n "$failed" ] && emit "$title: failing" "$failed"
-  body=$(grep -E "$pattern" /tmp/ci_out.txt | grep -v "hasSize\|When the exception was thrown\|was being processed" | cut -c1-300 | awk '!seen[$0]++' | head -120)
+  body=$(grep -E -A"${CONTEXT:-0}" "$pattern" /tmp/ci_out.txt | grep -v "^--$" | grep -v "hasSize\|When the exception was thrown\|was being processed" | cut -c1-300 | awk '!seen[$0]++' | head -${LINES_MAX:-120})
   [ -z "$body" ] && body=$(tail -80 /tmp/ci_out.txt | cut -c1-300)
   emit "$title" "$body"
 fi

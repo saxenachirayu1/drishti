@@ -21,8 +21,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 final _env = Platform.environment;
 final _live = _env['DRISHTI_LIVE'] == '1';
 
-DrishtiRepo _client() => DrishtiRepo(SupabaseClient(AppConfig.supabaseUrl, AppConfig.supabaseAnonKey,
-    authOptions: const AuthClientOptions(autoRefreshToken: false)));
+DrishtiRepo _client() => DrishtiRepo(
+  SupabaseClient(
+    AppConfig.supabaseUrl,
+    AppConfig.supabaseAnonKey,
+    authOptions: const AuthClientOptions(autoRefreshToken: false),
+  ),
+);
 
 ActionEngine _local(DrishtiRepo repo) => ActionEngine(repo, DrishtiApi('', () => repo.accessToken));
 
@@ -135,8 +140,10 @@ void main() {
     });
 
     test('cannot act as an officer', () async {
-      await expectLater(citizen.insertComplaint(siteId: 'site-1', text: 'x', language: 'English'),
-          throwsA(isA<PostgrestException>()));
+      await expectLater(
+        citizen.insertComplaint(siteId: 'site-1', text: 'x', language: 'English'),
+        throwsA(isA<PostgrestException>()),
+      );
       await citizen.updateSite('site-2', {'status': 'dismissed'});
       expect((await anon.site('site-2'))!.status, 'active', reason: 'RLS must ignore a citizen update');
       await expectLater(citizen.queueRun(cityId: 'indore', kind: 'detect'), throwsA(isA<PostgrestException>()));
@@ -146,8 +153,10 @@ void main() {
       await citizen.updateMyProfile(language: 'Hindi');
       expect((await citizen.myProfile())!.language, 'Hindi');
       await citizen.updateMyProfile(language: 'English');
-      await expectLater(citizen.db.from('profiles').update({'role': 'admin'}).eq('user_id', citizen.user!.id),
-          throwsA(isA<PostgrestException>()));
+      await expectLater(
+        citizen.db.from('profiles').update({'role': 'admin'}).eq('user_id', citizen.user!.id),
+        throwsA(isA<PostgrestException>()),
+      );
     });
   });
 
@@ -166,8 +175,11 @@ void main() {
       expect(c.status, 'draft');
       expect(c.wardId, 'w-ind-12', reason: 'ward filled from the site by the trigger');
       expect(c.draftText, contains('Ward 12 (Rau)'));
-      expect((await anon.complaints(siteId: 'site-1')).map((x) => x.id), isNot(contains(c.id)),
-          reason: 'drafts are not public');
+      expect(
+        (await anon.complaints(siteId: 'site-1')).map((x) => x.id),
+        isNot(contains(c.id)),
+        reason: 'drafts are not public',
+      );
 
       c = await engine.saveText(c, '${c.draftText}\n(E2E edit)');
       expect(c.draftText, endsWith('(E2E edit)'));
@@ -179,8 +191,11 @@ void main() {
       expect(c.sentAt, isNotNull);
       expect(ActionEngine.mailto(c, site).path, 'ward12.indore@example.com');
       expect((await anon.site('site-1'))!.status, 'complaint_sent');
-      expect((await anon.complaints(siteId: 'site-1')).map((x) => x.id), contains(c.id),
-          reason: 'sent complaints are public');
+      expect(
+        (await anon.complaints(siteId: 'site-1')).map((x) => x.id),
+        contains(c.id),
+        reason: 'sent complaints are public',
+      );
 
       expect(await engine.verifyAll(), greaterThanOrEqualTo(1));
       expect((await anon.verifications('site-1')).first.result, 'still_present');
@@ -230,8 +245,10 @@ void main() {
       final p = (await admin.profiles()).firstWhere((x) => x.userId == citizen.user!.id);
       expect(p.role, 'board');
       expect((await citizen.allReports()).length, greaterThanOrEqualTo(2), reason: 'board can read all reports');
-      await expectLater(citizen.insertComplaint(siteId: 'site-1', text: 'x', language: 'English'),
-          throwsA(isA<PostgrestException>()));
+      await expectLater(
+        citizen.insertComplaint(siteId: 'site-1', text: 'x', language: 'English'),
+        throwsA(isA<PostgrestException>()),
+      );
       await admin.setUserRole(citizen.user!.id, 'citizen');
     });
 
@@ -264,8 +281,8 @@ void main() {
             },
           )
           .subscribe((status, _) {
-        if (status == RealtimeSubscribeStatus.subscribed && !joined.isCompleted) joined.complete();
-      });
+            if (status == RealtimeSubscribeStatus.subscribed && !joined.isCompleted) joined.complete();
+          });
       await joined.future.timeout(const Duration(seconds: 15));
       final sw = Stopwatch()..start();
       await officer.updateSite('site-2', {'status': 'cleanup_reported'});

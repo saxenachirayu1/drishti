@@ -35,18 +35,18 @@ class City {
   bool get hasBounds => west != null && south != null && east != null && north != null;
 
   factory City.fromMap(Map<String, dynamic> m) => City(
-        id: m['id'] as String,
-        name: m['name'] as String,
-        state: m['state'] as String?,
-        isPilot: m['is_pilot'] as bool? ?? false,
-        areaKm2: asDouble(m['area_km2']),
-        lat: asDouble(m['lat']),
-        lng: asDouble(m['lng']),
-        west: asDouble(m['west']),
-        south: asDouble(m['south']),
-        east: asDouble(m['east']),
-        north: asDouble(m['north']),
-      );
+    id: m['id'] as String,
+    name: m['name'] as String,
+    state: m['state'] as String?,
+    isPilot: m['is_pilot'] as bool? ?? false,
+    areaKm2: asDouble(m['area_km2']),
+    lat: asDouble(m['lat']),
+    lng: asDouble(m['lng']),
+    west: asDouble(m['west']),
+    south: asDouble(m['south']),
+    east: asDouble(m['east']),
+    north: asDouble(m['north']),
+  );
 }
 
 /// A row of `ward_map`.
@@ -70,14 +70,14 @@ class Ward {
   final List<List<LatLng>> rings;
 
   factory Ward.fromMap(Map<String, dynamic> m) => Ward(
-        id: m['id'] as String,
-        cityId: m['city_id'] as String,
-        wardNo: asInt(m['ward_no']),
-        name: m['name'] as String?,
-        officerName: m['officer_name'] as String?,
-        officerEmail: m['officer_email'] as String?,
-        rings: outerRings(m['geojson']),
-      );
+    id: m['id'] as String,
+    cityId: m['city_id'] as String,
+    wardNo: asInt(m['ward_no']),
+    name: m['name'] as String?,
+    officerName: m['officer_name'] as String?,
+    officerEmail: m['officer_email'] as String?,
+    rings: outerRings(m['geojson']),
+  );
 }
 
 /// A row of `city_leaderboard`: the latest score of one city.
@@ -109,19 +109,16 @@ class CityScore {
   final Map<String, double> parts;
 
   factory CityScore.fromMap(Map<String, dynamic> m) => CityScore(
-        cityId: m['city_id'] as String,
-        name: m['name'] as String,
-        state: m['state'] as String?,
-        period: m['period'] as String,
-        score: asInt(m['score']) ?? 0,
-        rank: asInt(m['rank']) ?? 0,
-        activeSites: asInt(m['active_sites']) ?? 0,
-        burnEvents: asInt(m['burn_events']) ?? 0,
-        medianDaysToClear: asDouble(m['median_days_to_clear']),
-        pctVerifiedCleared: asDouble(m['pct_verified_cleared']),
-        parts: {
-          for (final e in ((m['parts'] as Map?) ?? const {}).entries)
-            e.key as String: asDouble(e.value) ?? 0,
-        },
-      );
+    cityId: m['city_id'] as String,
+    name: m['name'] as String,
+    state: m['state'] as String?,
+    period: m['period'] as String,
+    score: asInt(m['score']) ?? 0,
+    rank: asInt(m['rank']) ?? 0,
+    activeSites: asInt(m['active_sites']) ?? 0,
+    burnEvents: asInt(m['burn_events']) ?? 0,
+    medianDaysToClear: asDouble(m['median_days_to_clear']),
+    pctVerifiedCleared: asDouble(m['pct_verified_cleared']),
+    parts: {for (final e in ((m['parts'] as Map?) ?? const {}).entries) e.key as String: asDouble(e.value) ?? 0},
+  );
 }

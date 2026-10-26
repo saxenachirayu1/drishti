@@ -14,10 +14,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Supabase.initialize(url: AppConfig.supabaseUrl, publishableKey: AppConfig.supabaseAnonKey);
   final prefs = await SharedPreferences.getInstance();
-  runApp(ProviderScope(
-    overrides: [prefsProvider.overrideWithValue(prefs)],
-    child: const DrishtiApp(),
-  ));
+  runApp(ProviderScope(overrides: [prefsProvider.overrideWithValue(prefs)], child: const DrishtiApp()));
 }
 
 class DrishtiApp extends ConsumerWidget {
@@ -25,17 +22,17 @@ class DrishtiApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => MaterialApp(
-        title: 'Drishti',
-        debugShowCheckedModeBanner: false,
-        locale: Locale(ref.watch(localeProvider)),
-        supportedLocales: S.supportedLocales,
-        localizationsDelegates: const [
-          S.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        theme: drishtiTheme(hindi: ref.watch(hindiProvider)),
-        home: const LandingScreen(),
-      );
+    title: 'Drishti',
+    debugShowCheckedModeBanner: false,
+    locale: Locale(ref.watch(localeProvider)),
+    supportedLocales: S.supportedLocales,
+    localizationsDelegates: const [
+      S.delegate,
+      GlobalMaterialLocalizations.delegate,
+      GlobalWidgetsLocalizations.delegate,
+      GlobalCupertinoLocalizations.delegate,
+    ],
+    theme: drishtiTheme(hindi: ref.watch(hindiProvider)),
+    home: const LandingScreen(),
+  );
 }

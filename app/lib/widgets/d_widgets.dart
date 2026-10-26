@@ -67,9 +67,13 @@ class DrishtiWordmark extends StatelessWidget {
         children: [
           DrishtiMark(onInk: onInk),
           const SizedBox(width: 10),
-          Text('Drishti', style: const DText(false).head(23, color: c)),
+          Flexible(
+            child: Text('Drishti', style: const DText(false).head(23, color: c)),
+          ),
           const SizedBox(width: 8),
-          Text('दृष्टि', style: const DText(true).head(22, color: onInk ? DColors.onInkFaint : DColors.muted)),
+          Flexible(
+            child: Text('दृष्टि', style: const DText(true).head(22, color: onInk ? DColors.onInkFaint : DColors.muted)),
+          ),
         ],
       ),
     );
