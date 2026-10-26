@@ -241,6 +241,7 @@ class _ImpactScreenState extends ConsumerState<ImpactScreen> {
                 alignment: Alignment.centerLeft,
                 child: const FractionallySizedBox(
                   widthFactor: 1048 / 2476,
+                  heightFactor: 1,
                   child: ColoredBox(color: DColors.clean),
                 ),
               ),

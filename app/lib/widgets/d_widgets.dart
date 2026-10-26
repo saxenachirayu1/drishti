@@ -818,15 +818,17 @@ class _ScenePainter extends CustomPainter {
 
 /// A white panel with a hairline border: the record's paper.
 class DPanel extends StatelessWidget {
-  const DPanel({super.key, required this.child, this.padding = const EdgeInsets.all(16), this.leftRule});
+  const DPanel({super.key, required this.child, this.padding = const EdgeInsets.all(16), this.leftRule, this.width});
   final Widget child;
   final EdgeInsets padding;
+  final double? width;
 
   /// An inset bar that marks state (for example overdue), never decoration.
   final Color? leftRule;
 
   @override
   Widget build(BuildContext context) => Container(
+    width: width,
     padding: padding,
     decoration: BoxDecoration(
       color: DColors.surface,
@@ -870,7 +872,10 @@ class DPage extends StatelessWidget {
   Widget build(BuildContext context) => Center(
     child: ConstrainedBox(
       constraints: BoxConstraints(maxWidth: maxWidth),
-      child: Padding(padding: padding, child: child),
+      child: SizedBox(
+        width: double.infinity,
+        child: Padding(padding: padding, child: child),
+      ),
     ),
   );
 }

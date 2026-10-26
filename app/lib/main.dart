@@ -15,6 +15,9 @@ Future<void> main() async {
   await Supabase.initialize(url: AppConfig.supabaseUrl, publishableKey: AppConfig.supabaseAnonKey);
   final prefs = await SharedPreferences.getInstance();
   runApp(ProviderScope(
+    // Try a failed load twice more, then show the error with a retry button
+    // instead of spinning while the server keeps refusing.
+    retry: (count, error) => count < 2 ? const Duration(seconds: 2) : null,
     overrides: [prefsProvider.overrideWithValue(prefs)],
     child: const DrishtiApp(),
   ));

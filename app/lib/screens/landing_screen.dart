@@ -413,8 +413,11 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
             liveRegion: true,
             child: AnimatedSwitcher(
               duration: reduceMotion(context) ? Duration.zero : const Duration(milliseconds: 200),
+              layoutBuilder: (current, previous) =>
+                  Stack(alignment: Alignment.topLeft, children: [...previous, ?current]),
               child: DPanel(
                 key: ValueKey('stop-text-$_stop-${ds.hindi}'),
+                width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
                 child: Wrap(
                   spacing: 24,
@@ -479,6 +482,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                     alignment: Alignment.centerLeft,
                     child: const FractionallySizedBox(
                       widthFactor: 1048 / 2476,
+                  heightFactor: 1,
                       child: ColoredBox(color: DColors.clean),
                     ),
                   ),
@@ -539,7 +543,7 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
                   const SizedBox(height: 10),
                   Text(ds.followBody, style: t.body(17, color: DColors.body)),
                   const SizedBox(height: 10),
-                  Text(passLine, style: DText.mono(13)),
+                  Text(passLine, style: ds.hindi ? t.body(13, weight: FontWeight.w600) : DText.mono(13)),
                 ],
               ),
             ),

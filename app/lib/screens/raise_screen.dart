@@ -210,8 +210,7 @@ class _RaiseScreenState extends ConsumerState<RaiseScreen> {
             shrinkWrap: true,
             padding: const EdgeInsets.all(24),
             children: [
-              Text(ds.raiseTitle, style: t.head(28)),
-              const SizedBox(height: 8),
+              if (!widget.standalone) ...[Text(ds.raiseTitle, style: t.head(28)), const SizedBox(height: 8)],
               Text(ds.signInToRaise, style: t.body(15, color: DColors.body)),
               const SizedBox(height: 16),
               const AuthForm(),
