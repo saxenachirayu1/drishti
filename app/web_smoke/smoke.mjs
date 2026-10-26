@@ -61,6 +61,35 @@ async function run(name, viewport) {
   } else {
     check(false, `${name}: language switch found`);
   }
+  // The rest of the home page, then the other screens, for the review screenshots.
+  if (name === 'desktop') {
+    await page.mouse.move(700, 600);
+    for (let i = 1; i <= 3; i++) {
+      await page.mouse.wheel(0, 850);
+      await page.waitForTimeout(900);
+      await page.screenshot({ path: `${out}/${name}-home-${i}.png` });
+    }
+    await page.goto(url, { waitUntil: 'load' });
+    await page.waitForSelector('flt-glass-pane, flutter-view', { timeout: 60000 });
+    await page.waitForTimeout(3000);
+    await page.evaluate(() => document.querySelector('flt-semantics-placeholder')?.click());
+    await page.waitForTimeout(1000);
+    for (const [label, file] of [['Raise a complaint', 'raise'], ['Track a complaint', 'track'], ['Impact', 'impact']]) {
+      const b = page.getByRole('button', { name: label }).first();
+      if (!(await b.count())) { check(false, `${name}: button ${label}`); continue; }
+      await b.click();
+      await page.waitForTimeout(3500);
+      await page.screenshot({ path: `${out}/${name}-${file}.png` });
+      check(true, `${name}: opened ${label}`);
+      await page.goBack().catch(() => {});
+      await page.keyboard.press('Escape').catch(() => {});
+      await page.goto(url, { waitUntil: 'load' });
+      await page.waitForSelector('flt-glass-pane, flutter-view', { timeout: 60000 });
+      await page.waitForTimeout(3000);
+      await page.evaluate(() => document.querySelector('flt-semantics-placeholder')?.click());
+      await page.waitForTimeout(1000);
+    }
+  }
   const real = errors.filter((e) => !/Failed to load resource|net::|supabase|websocket|CORS/i.test(e));
   check(real.length === 0, `${name}: no script errors${real.length ? ': ' + real.slice(0, 3).join(' / ') : ''}`);
   await page.close();

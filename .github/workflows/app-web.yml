@@ -23,6 +23,10 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # to publish PR screenshots to the ci/screenshots branch
+      pages: write
+      id-token: write
     defaults:
       run:
         working-directory: app
@@ -63,6 +67,16 @@ jobs:
           name: web-smoke-screenshots
           path: app/web_smoke/out
           if-no-files-found: ignore
+      # Reviewers (and Claude, which cannot download artifacts) read the
+      # screenshots from the ci/screenshots branch.
+      - name: Publish screenshots for review
+        if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        working-directory: app/web_smoke/out
+        run: |
+          [ -n "$(ls -A 2>/dev/null)" ] || exit 0
+          git init -q && git checkout -q -b ci/screenshots
+          git add . && git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -qm "Screenshots for ${{ github.sha }}"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ci/screenshots
       - uses: actions/upload-pages-artifact@v3
         if: github.ref == 'refs/heads/main'
         with:
