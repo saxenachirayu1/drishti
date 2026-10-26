@@ -36,7 +36,7 @@ jobs:
       - run: tool/ci_annotate.sh "flutter analyze" ' • |error|warning' -- flutter analyze
       # Unit, widget and flow tests. live_supabase_test.dart skips itself
       # unless DRISHTI_LIVE=1.
-      - run: tool/ci_annotate.sh "flutter test" 'FAIL|Error|Expected|Actual|Which|══|test/.*dart [0-9]+:[0-9]+|\[E\]|Exception|overflow' -- flutter test
+      - run: tool/ci_annotate.sh "flutter test" 'The following|overflowed|Expected:|Actual:|Which:|test/[a-z_]+\.dart [0-9]+:[0-9]+|lib/[a-z_/]+\.dart [0-9]+:[0-9]+|\[E\]|Bad state|Exception:|was thrown|Error:|failed|Failed assertion|Some tests failed' -- flutter test
       # API_BASE_URL: set it under Settings -> Secrets and variables -> Actions -> Variables
       # once Member C's API is deployed; empty means the app works directly on Supabase.
       - run: >
