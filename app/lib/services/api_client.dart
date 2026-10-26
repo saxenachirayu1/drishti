@@ -21,22 +21,23 @@ class DrishtiApi {
   bool get enabled => baseUrl.isNotEmpty;
 
   Map<String, String> get _headers => {
-    'content-type': 'application/json',
-    if (token() != null) 'authorization': 'Bearer ${token()}',
-  };
+        'content-type': 'application/json',
+        if (token() != null) 'authorization': 'Bearer ${token()}',
+      };
 
   Future<dynamic> _send(String method, String path, [Object? body]) async {
     final uri = Uri.parse('$baseUrl$path');
     final req = http.Request(method, uri)..headers.addAll(_headers);
     if (body != null) req.body = jsonEncode(body);
-    final res = await http.Response.fromStream(await _http.send(req).timeout(const Duration(seconds: 60)));
+    final res = await http.Response.fromStream(
+        await _http.send(req).timeout(const Duration(seconds: 60)));
     final decoded = res.body.isEmpty ? null : jsonDecode(utf8.decode(res.bodyBytes));
     if (res.statusCode >= 400) {
       final msg = decoded is Map && decoded['error'] is Map
           ? decoded['error']['message']?.toString()
           : decoded is Map
-          ? decoded['detail']?.toString()
-          : null;
+              ? decoded['detail']?.toString()
+              : null;
       throw ApiException(res.statusCode, msg ?? res.reasonPhrase ?? 'request failed');
     }
     return decoded;
@@ -45,9 +46,8 @@ class DrishtiApi {
   Future<Map<String, dynamic>> health() async => Map<String, dynamic>.from(await _send('GET', '/health'));
 
   /// [{detection_id, date, area_m2, confidence, thumb_url}] in date order.
-  Future<List<Map<String, dynamic>>> timeline(String siteId) async => [
-    for (final r in await _send('GET', '/sites/$siteId/timeline') as List) Map<String, dynamic>.from(r as Map),
-  ];
+  Future<List<Map<String, dynamic>>> timeline(String siteId) async =>
+      [for (final r in await _send('GET', '/sites/$siteId/timeline') as List) Map<String, dynamic>.from(r as Map)];
 
   Future<void> dismissSite(String siteId, String reason) => _send('POST', '/sites/$siteId/dismiss', {'reason': reason});
 
@@ -61,9 +61,8 @@ class DrishtiApi {
   Future<void> sendComplaint(String id) => _send('POST', '/complaints/$id/send');
 
   Future<Map<String, dynamic>> chat(String message, {String? cityId, required String language}) async =>
-      Map<String, dynamic>.from(
-        await _send('POST', '/assistant/chat', {'message': message, 'city_id': cityId, 'language': language}),
-      );
+      Map<String, dynamic>.from(await _send(
+          'POST', '/assistant/chat', {'message': message, 'city_id': cityId, 'language': language}));
 
   Future<void> cityScore(String cityId) => _send('GET', '/cities/$cityId/score');
 
@@ -72,6 +71,5 @@ class DrishtiApi {
 
   Future<Map<String, dynamic>> runPipeline(String cityId, String dateFrom, String dateTo) async =>
       Map<String, dynamic>.from(
-        await _send('POST', '/pipeline/run', {'city_id': cityId, 'date_from': dateFrom, 'date_to': dateTo}),
-      );
+          await _send('POST', '/pipeline/run', {'city_id': cityId, 'date_from': dateFrom, 'date_to': dateTo}));
 }

@@ -10,7 +10,8 @@ DateTime? asDate(Object? v) => v == null ? null : DateTime.tryParse(v.toString()
 List<List<LatLng>> outerRings(Object? geojson) {
   if (geojson is! Map) return const [];
   final coords = geojson['coordinates'];
-  List<LatLng> ring(List r) => [for (final p in r) LatLng((p[1] as num).toDouble(), (p[0] as num).toDouble())];
+  List<LatLng> ring(List r) =>
+      [for (final p in r) LatLng((p[1] as num).toDouble(), (p[0] as num).toDouble())];
   switch (geojson['type']) {
     case 'Polygon':
       return [ring((coords as List).first as List)];

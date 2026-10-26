@@ -43,11 +43,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     _setupShownFor = p.userId;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => _SetupDialog(profile: p),
-      );
+      showDialog(context: context, barrierDismissible: false, builder: (_) => _SetupDialog(profile: p));
     });
   }
 
@@ -77,12 +73,8 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       ('impact', Icons.insights_outlined, hi ? 'असर' : 'Impact', const ImpactScreen()),
       ('assistant', Icons.chat_outlined, s.assistant, const AssistantScreen()),
       if (profile?.isStaff ?? false)
-        (
-          'console',
-          Icons.inbox_outlined,
-          hi ? 'विभाग' : 'Console',
-          DeptConsoleScreen(canAct: profile!.canAct, department: profile.department),
-        ),
+        ('console', Icons.inbox_outlined, hi ? 'विभाग' : 'Console',
+            DeptConsoleScreen(canAct: profile!.canAct, department: profile.department)),
       if (role != 'citizen') ('complaints', Icons.description_outlined, s.complaints, const ComplaintsListScreen()),
       if (role == 'admin') ('pipeline', Icons.satellite_alt_outlined, s.pipeline, const PipelineScreen()),
       if (role == 'admin') ('review', Icons.fact_check_outlined, s.review, const ReviewScreen()),
@@ -98,18 +90,13 @@ class _HomeShellState extends ConsumerState<HomeShell> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          children: [
-            const DrishtiMark(size: 28),
-            const SizedBox(width: 10),
-            Text(s.appName),
-            const SizedBox(width: 12),
-            if (wide)
-              Flexible(
-                child: Text(s.tagline, style: const TextStyle(fontSize: 13, color: DColors.muted)),
-              ),
-          ],
-        ),
+        title: Row(children: [
+          const DrishtiMark(size: 28),
+          const SizedBox(width: 10),
+          Text(s.appName),
+          const SizedBox(width: 12),
+          if (wide) Flexible(child: Text(s.tagline, style: const TextStyle(fontSize: 13, color: DColors.muted))),
+        ]),
         actions: [
           LanguageSwitch(
             hindi: hi,
@@ -120,18 +107,16 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         ],
       ),
       body: wide
-          ? Row(
-              children: [
-                NavigationRail(
-                  selectedIndex: index,
-                  labelType: NavigationRailLabelType.all,
-                  onDestinationSelected: select,
-                  destinations: [for (final t in tabs) NavigationRailDestination(icon: Icon(t.$2), label: Text(t.$3))],
-                ),
-                const VerticalDivider(width: 1),
-                Expanded(child: body),
-              ],
-            )
+          ? Row(children: [
+              NavigationRail(
+                selectedIndex: index,
+                labelType: NavigationRailLabelType.all,
+                onDestinationSelected: select,
+                destinations: [for (final t in tabs) NavigationRailDestination(icon: Icon(t.$2), label: Text(t.$3))],
+              ),
+              const VerticalDivider(width: 1),
+              Expanded(child: body),
+            ])
           : body,
       bottomNavigationBar: wide
           ? null
@@ -165,45 +150,42 @@ class _SetupDialogState extends ConsumerState<_SetupDialog> {
     final cities = ref.watch(citiesProvider).value ?? const <City>[];
     return AlertDialog(
       title: Text(s.welcome),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(s.setupHint),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            initialValue: _city,
-            decoration: InputDecoration(labelText: s.homeCity),
-            items: [for (final c in cities) DropdownMenuItem(value: c.id, child: Text(c.name))],
-            onChanged: (v) => setState(() => _city = v),
-          ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            initialValue: _locale,
-            decoration: InputDecoration(labelText: s.language),
-            items: [
-              for (final l in S.supportedLocales)
-                DropdownMenuItem(value: l.languageCode, child: Text(stringsFor(l.languageCode).languageName)),
-            ],
-            onChanged: (v) {
-              if (v == null) return;
-              setState(() => _locale = v);
-              ref.read(localeProvider.notifier).set(v);
-            },
-          ),
-          const SizedBox(height: 12),
-          Text('${s.role}: ${s.roleName(widget.profile.role)}', style: Theme.of(context).textTheme.bodySmall),
-        ],
-      ),
+      content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(s.setupHint),
+        const SizedBox(height: 12),
+        DropdownButtonFormField<String>(
+          initialValue: _city,
+          decoration: InputDecoration(labelText: s.homeCity),
+          items: [for (final c in cities) DropdownMenuItem(value: c.id, child: Text(c.name))],
+          onChanged: (v) => setState(() => _city = v),
+        ),
+        const SizedBox(height: 12),
+        DropdownButtonFormField<String>(
+          initialValue: _locale,
+          decoration: InputDecoration(labelText: s.language),
+          items: [
+            for (final l in S.supportedLocales)
+              DropdownMenuItem(value: l.languageCode, child: Text(stringsFor(l.languageCode).languageName)),
+          ],
+          onChanged: (v) {
+            if (v == null) return;
+            setState(() => _locale = v);
+            ref.read(localeProvider.notifier).set(v);
+          },
+        ),
+        const SizedBox(height: 12),
+        Text('${s.role}: ${s.roleName(widget.profile.role)}', style: Theme.of(context).textTheme.bodySmall),
+      ]),
       actions: [
         FilledButton(
           onPressed: _city == null
               ? null
               : () async {
                   final ok = await guarded(
-                    context,
-                    () => ref.read(repoProvider).updateMyProfile(cityId: _city, language: languageForLocale(_locale)),
-                  );
+                      context,
+                      () => ref
+                          .read(repoProvider)
+                          .updateMyProfile(cityId: _city, language: languageForLocale(_locale)));
                   if (!ok || !context.mounted) return;
                   ref.invalidate(profileProvider);
                   Navigator.pop(context);

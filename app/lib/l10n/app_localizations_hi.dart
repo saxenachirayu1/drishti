@@ -121,7 +121,8 @@ class AppLocalizationsHi extends AppLocalizations {
   String get timeline => 'समय के साथ बढ़त';
 
   @override
-  String get timelineHint => 'हर उपग्रह चित्र में स्थल देखने के लिए स्लाइडर खिसकाएँ।';
+  String get timelineHint =>
+      'हर उपग्रह चित्र में स्थल देखने के लिए स्लाइडर खिसकाएँ।';
 
   @override
   String get firstSighting => 'पहली बार';
@@ -190,7 +191,8 @@ class AppLocalizationsHi extends AppLocalizations {
   String get reportTitle => 'कचरे की रिपोर्ट करें';
 
   @override
-  String get reportHint => 'नक्शे पर जहाँ कचरा है वहाँ टैप करें, नोट और फ़ोटो जोड़ें।';
+  String get reportHint =>
+      'नक्शे पर जहाँ कचरा है वहाँ टैप करें, नोट और फ़ोटो जोड़ें।';
 
   @override
   String get tapToPlace => 'पिन लगाने के लिए नक्शे पर टैप करें';
@@ -199,7 +201,8 @@ class AppLocalizationsHi extends AppLocalizations {
   String get note => 'नोट';
 
   @override
-  String get notePlaceholder => 'आपने क्या देखा? जैसे नहर के पास कचरा जल रहा है';
+  String get notePlaceholder =>
+      'आपने क्या देखा? जैसे नहर के पास कचरा जल रहा है';
 
   @override
   String get addPhoto => 'फ़ोटो जोड़ें';
@@ -217,7 +220,8 @@ class AppLocalizationsHi extends AppLocalizations {
   String get reportMatched => 'धन्यवाद! यह पहले से दर्ज एक स्थल से मेल खाता है';
 
   @override
-  String get reportFlagged => 'धन्यवाद! एक अधिकारी इस नए स्थान की समीक्षा करेंगे।';
+  String get reportFlagged =>
+      'धन्यवाद! एक अधिकारी इस नए स्थान की समीक्षा करेंगे।';
 
   @override
   String get myReports => 'मेरी रिपोर्टें';
@@ -338,7 +342,8 @@ class AppLocalizationsHi extends AppLocalizations {
   String get apiMode => 'Drishti API (Granite) से जुड़ा है';
 
   @override
-  String get localMode => 'सीधे Supabase पर चल रहा है (टेम्पलेट शिकायत, अंतर्निहित सहायक)';
+  String get localMode =>
+      'सीधे Supabase पर चल रहा है (टेम्पलेट शिकायत, अंतर्निहित सहायक)';
 
   @override
   String get staffOnly => 'वार्ड अधिकारियों और एडमिन के लिए';
@@ -512,7 +517,8 @@ class AppLocalizationsHi extends AppLocalizations {
   String get useMyLocation => 'मेरा स्थान उपयोग करें';
 
   @override
-  String get locationOff => 'स्थान उपलब्ध नहीं है। पिन लगाने के लिए नक्शे पर टैप करें।';
+  String get locationOff =>
+      'स्थान उपलब्ध नहीं है। पिन लगाने के लिए नक्शे पर टैप करें।';
 
   @override
   String get reportsHere => 'यहाँ की नागरिक रिपोर्टें';

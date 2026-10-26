@@ -19,32 +19,24 @@ class ScoresScreen extends ConsumerWidget {
         constraints: const BoxConstraints(maxWidth: 900),
         child: RefreshIndicator(
           onRefresh: () async => ref.invalidate(leaderboardProvider),
-          child: ListView(
-            padding: const EdgeInsets.all(12),
-            children: [
-              Text(s.leaderboard, style: Theme.of(context).textTheme.headlineSmall),
-              const SizedBox(height: 4),
-              Text(s.scoreHint, style: Theme.of(context).textTheme.bodySmall),
-              const SizedBox(height: 12),
-              AsyncView(
-                ref.watch(leaderboardProvider),
-                onRetry: () => ref.invalidate(leaderboardProvider),
+          child: ListView(padding: const EdgeInsets.all(12), children: [
+            Text(s.leaderboard, style: Theme.of(context).textTheme.headlineSmall),
+            const SizedBox(height: 4),
+            Text(s.scoreHint, style: Theme.of(context).textTheme.bodySmall),
+            const SizedBox(height: 12),
+            AsyncView(ref.watch(leaderboardProvider), onRetry: () => ref.invalidate(leaderboardProvider),
                 builder: (rows) {
-                  if (rows.isEmpty) return const EmptyNote();
-                  return Column(
-                    children: [
-                      for (final row in rows)
-                        _ScoreCard(
-                          score: row,
-                          liveActive: sites.where((x) => x.cityId == row.cityId && x.status == 'active').length,
-                          canAct: canAct,
-                        ),
-                    ],
-                  );
-                },
-              ),
-            ],
-          ),
+              if (rows.isEmpty) return const EmptyNote();
+              return Column(children: [
+                for (final row in rows)
+                  _ScoreCard(
+                    score: row,
+                    liveActive: sites.where((x) => x.cityId == row.cityId && x.status == 'active').length,
+                    canAct: canAct,
+                  ),
+              ]);
+            }),
+          ]),
         ),
       ),
     );
@@ -74,10 +66,8 @@ class _ScoreCard extends ConsumerWidget {
         leading: CircleAvatar(child: Text('#${score.rank}')),
         title: Text(score.name, style: const TextStyle(fontWeight: FontWeight.w600)),
         subtitle: Text('${score.state ?? ''} · ${score.period}'),
-        trailing: Text(
-          '${score.score}',
-          style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: _color(score.score)),
-        ),
+        trailing: Text('${score.score}',
+            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: _color(score.score))),
         childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         children: [
           for (final (label, v) in parts)
@@ -89,10 +79,7 @@ class _ScoreCard extends ConsumerWidget {
           if (score.pctVerifiedCleared != null)
             InfoRow(s.verifiedCleared, '${(score.pctVerifiedCleared! * 100).round()}%'),
           const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(s.trend, style: Theme.of(context).textTheme.labelLarge),
-          ),
+          Align(alignment: Alignment.centerLeft, child: Text(s.trend, style: Theme.of(context).textTheme.labelLarge)),
           const SizedBox(height: 4),
           AsyncView(ref.watch(scoreHistoryProvider(score.cityId)), builder: (months) => _Trend(months: months)),
           if (canAct)
@@ -123,37 +110,30 @@ class _Trend extends StatelessWidget {
     final shown = months.length > 12 ? months.sublist(months.length - 12) : months;
     return SizedBox(
       height: 110,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          for (final (period, score) in shown)
-            Expanded(
-              child: Semantics(
-                label: '$period: $score',
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 3),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Text('$score', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 2),
-                      Container(
-                        height: 60 * score / 100,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary
-                              .withValues(alpha: period == shown.last.$1 ? 1 : 0.45),
-                          borderRadius: BorderRadius.circular(3),
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(period.length >= 7 ? period.substring(5) : period, style: const TextStyle(fontSize: 10)),
-                    ],
+      child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+        for (final (period, score) in shown)
+          Expanded(
+            child: Semantics(
+              label: '$period: $score',
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 3),
+                child: Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+                  Text('$score', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 2),
+                  Container(
+                    height: 60 * score / 100,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: period == shown.last.$1 ? 1 : 0.45),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 2),
+                  Text(period.length >= 7 ? period.substring(5) : period, style: const TextStyle(fontSize: 10)),
+                ]),
               ),
             ),
-        ],
-      ),
+          ),
+      ]),
     );
   }
 }

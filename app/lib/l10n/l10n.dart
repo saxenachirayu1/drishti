@@ -13,39 +13,39 @@ S stringsFor(String languageCode) => lookupAppLocalizations(Locale(languageCode)
 /// Database codes (statuses, results, roles) to display text.
 extension CodeLabels on AppLocalizations {
   String status(String code) => switch (code) {
-    'active' => statusActive,
-    'complaint_sent' => statusComplaintSent,
-    'cleanup_reported' => statusCleanupReported,
-    'cleared' => statusCleared,
-    'dismissed' => statusDismissed,
-    'draft' => statusDraft,
-    'approved' => statusApproved,
-    'sent' => statusSent,
-    'closed' => statusClosed,
-    'new' => statusNew,
-    'matched' => statusMatched,
-    'rejected' => statusRejected,
-    'queued' => statusQueued,
-    'running' => statusRunning,
-    'done' => statusDone,
-    'failed' => statusFailed,
-    _ => code,
-  };
+        'active' => statusActive,
+        'complaint_sent' => statusComplaintSent,
+        'cleanup_reported' => statusCleanupReported,
+        'cleared' => statusCleared,
+        'dismissed' => statusDismissed,
+        'draft' => statusDraft,
+        'approved' => statusApproved,
+        'sent' => statusSent,
+        'closed' => statusClosed,
+        'new' => statusNew,
+        'matched' => statusMatched,
+        'rejected' => statusRejected,
+        'queued' => statusQueued,
+        'running' => statusRunning,
+        'done' => statusDone,
+        'failed' => statusFailed,
+        _ => code,
+      };
 
   String result(String code) => switch (code) {
-    'still_present' => resultStillPresent,
-    'shrinking' => resultShrinking,
-    'cleared' => resultCleared,
-    _ => code,
-  };
+        'still_present' => resultStillPresent,
+        'shrinking' => resultShrinking,
+        'cleared' => resultCleared,
+        _ => code,
+      };
 
   String roleName(String code) => switch (code) {
-    'citizen' => roleCitizen,
-    'officer' => roleOfficer,
-    'board' => roleBoard,
-    'admin' => roleAdmin,
-    _ => code,
-  };
+        'citizen' => roleCitizen,
+        'officer' => roleOfficer,
+        'board' => roleBoard,
+        'admin' => roleAdmin,
+        _ => code,
+      };
 }
 
 /// Profile `language` values (brief section 6) to locale codes and back.

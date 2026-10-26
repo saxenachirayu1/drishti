@@ -121,7 +121,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get timeline => 'Growth over time';
 
   @override
-  String get timelineHint => 'Drag the slider to see the site in each satellite pass.';
+  String get timelineHint =>
+      'Drag the slider to see the site in each satellite pass.';
 
   @override
   String get firstSighting => 'first sighting';
@@ -172,7 +173,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get openPdf => 'Open PDF';
 
   @override
-  String get emailOpened => 'Marked as sent. Your email app has the letter ready.';
+  String get emailOpened =>
+      'Marked as sent. Your email app has the letter ready.';
 
   @override
   String get verification => 'Clean-up checks';
@@ -190,7 +192,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportTitle => 'Report a dump';
 
   @override
-  String get reportHint => 'Tap the map where the waste is, add a note and a photo.';
+  String get reportHint =>
+      'Tap the map where the waste is, add a note and a photo.';
 
   @override
   String get tapToPlace => 'Tap the map to place the pin';
@@ -199,7 +202,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get note => 'Note';
 
   @override
-  String get notePlaceholder => 'What did you see? e.g. garbage burning near the canal';
+  String get notePlaceholder =>
+      'What did you see? e.g. garbage burning near the canal';
 
   @override
   String get addPhoto => 'Add photo';
@@ -217,7 +221,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportMatched => 'Thanks! This matches a site we already track';
 
   @override
-  String get reportFlagged => 'Thanks! An official will review this new location.';
+  String get reportFlagged =>
+      'Thanks! An official will review this new location.';
 
   @override
   String get myReports => 'My reports';
@@ -338,7 +343,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get apiMode => 'Connected to the Drishti API (Granite)';
 
   @override
-  String get localMode => 'Running directly on Supabase (template complaints, built-in assistant)';
+  String get localMode =>
+      'Running directly on Supabase (template complaints, built-in assistant)';
 
   @override
   String get staffOnly => 'For ward officers and admins';
@@ -442,7 +448,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get welcome => 'Welcome to Drishti';
 
   @override
-  String get setupHint => 'Pick your city and language. You start as a citizen; an admin can make you an officer.';
+  String get setupHint =>
+      'Pick your city and language. You start as a citizen; an admin can make you an officer.';
 
   @override
   String get homeCity => 'Home city';
@@ -511,7 +518,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get useMyLocation => 'Use my location';
 
   @override
-  String get locationOff => 'Location unavailable. Tap the map to place the pin.';
+  String get locationOff =>
+      'Location unavailable. Tap the map to place the pin.';
 
   @override
   String get reportsHere => 'Citizen reports here';
