@@ -127,6 +127,7 @@ class _RaiseScreenState extends ConsumerState<RaiseScreen> {
       setState(() {
         _photo = null;
         _note.clear();
+        _busy = false; // the form is done; the dialog takes over
       });
       await _sent(ds, res);
     } catch (e) {
