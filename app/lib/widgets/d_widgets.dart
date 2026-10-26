@@ -437,19 +437,22 @@ class DNavLink extends StatelessWidget {
       onPressed: onPressed,
       label: label,
       builder: (context, hover, focus, down) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        child: IntrinsicWidth(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Stack(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Text(
                 label,
                 style: DText(hindi)
                     .body(size, weight: FontWeight.w500, color: onInk ? DColors.paper : DColors.ink, height: 1.3),
               ),
-              const SizedBox(height: 4),
-              Align(
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Align(
                 alignment: Alignment.centerLeft,
                 child: AnimatedFractionallySizedBox(
                   duration: reduceMotion(context) ? Duration.zero : const Duration(milliseconds: 250),
@@ -457,8 +460,8 @@ class DNavLink extends StatelessWidget {
                   child: Container(height: 2, color: DColors.signal),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
