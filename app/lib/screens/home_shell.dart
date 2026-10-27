@@ -1,32 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../config.dart';
 import '../l10n/l10n.dart';
 import '../models/action.dart';
 import '../models/place.dart';
 import '../providers.dart';
+import '../theme/drishti_theme.dart';
+import '../widgets/common.dart';
+import '../widgets/d_widgets.dart';
 import 'assistant_screen.dart';
 import 'complaints_list_screen.dart';
+import 'dept_console_screen.dart';
+import 'impact_screen.dart';
 import 'map_screen.dart';
 import 'pipeline_screen.dart';
 import 'profile_screen.dart';
-import 'report_screen.dart';
+import 'raise_screen.dart';
 import 'review_screen.dart';
-import 'scores_screen.dart';
-import '../widgets/common.dart';
+import 'track_screen.dart';
 
-/// Tabs by role (A-09): everyone gets Map, Scores, Report, Assistant and
-/// Profile; officers and the board add Complaints; admins add Pipeline and
-/// Review. Bottom navigation on phones, a side rail on the web dashboard.
+/// Tabs by role (A-09): everyone gets Map, Raise, Track, Impact, Assistant
+/// and Profile; officers and the board add the department console and the
+/// satellite complaints; admins add Pipeline and Review. Bottom navigation on
+/// phones, a side rail on the web dashboard. City scores live under Impact.
 class HomeShell extends ConsumerStatefulWidget {
-  const HomeShell({super.key});
+  const HomeShell({super.key, this.initialTab = 'map'});
+
+  /// A tab to open on. A tab the viewer does not have (the console for a
+  /// signed-out visitor) opens Profile, where they can sign in.
+  final String initialTab;
 
   @override
   ConsumerState<HomeShell> createState() => _HomeShellState();
 }
 
 class _HomeShellState extends ConsumerState<HomeShell> {
-  String _tab = 'map';
+  late String _tab = widget.initialTab;
   String? _setupShownFor;
 
   void _firstTimeSetup(Profile p) {
@@ -56,16 +66,29 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       ref.read(tabRequestProvider.notifier).set(null);
     });
 
+    final hi = ref.watch(hindiProvider);
     final tabs = <(String, IconData, String, Widget)>[
       ('map', Icons.map_outlined, s.map, const MapScreen()),
-      ('scores', Icons.leaderboard_outlined, s.scores, const ScoresScreen()),
-      ('report', Icons.add_location_alt_outlined, s.report, const ReportScreen()),
+      ('raise', Icons.add_location_alt_outlined, hi ? 'शिकायत' : 'Raise', const RaiseScreen()),
+      ('track', Icons.timeline_outlined, hi ? 'स्थिति' : 'Track', const TrackScreen()),
+      ('impact', Icons.insights_outlined, hi ? 'असर' : 'Impact', const ImpactScreen()),
       ('assistant', Icons.chat_outlined, s.assistant, const AssistantScreen()),
+      // In demo mode everyone gets the console, so one laptop can show both sides.
+      if ((profile?.isStaff ?? false) || AppConfig.demo)
+        (
+          'console',
+          Icons.inbox_outlined,
+          hi ? 'विभाग' : 'Console',
+          DeptConsoleScreen(canAct: AppConfig.demo || profile!.canAct, department: profile?.department),
+        ),
       if (role != 'citizen') ('complaints', Icons.description_outlined, s.complaints, const ComplaintsListScreen()),
       if (role == 'admin') ('pipeline', Icons.satellite_alt_outlined, s.pipeline, const PipelineScreen()),
       if (role == 'admin') ('review', Icons.fact_check_outlined, s.review, const ReviewScreen()),
       ('profile', Icons.person_outline, s.profile, const ProfileScreen()),
     ];
+    // Asked for a tab this viewer does not have: sign in on Profile. Once the
+    // profile loads with the right role the tab appears and is kept.
+    if (!tabs.any((t) => t.$1 == _tab) && !ref.watch(profileProvider).isLoading) _tab = 'profile';
     final index = tabs.indexWhere((t) => t.$1 == _tab).clamp(0, tabs.length - 1);
     void select(int i) => setState(() => _tab = tabs[i].$1);
     final wide = MediaQuery.sizeOf(context).width >= 900;
@@ -74,12 +97,20 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     return Scaffold(
       appBar: AppBar(
         title: Row(children: [
-          const Icon(Icons.satellite_alt),
-          const SizedBox(width: 8),
+          const DrishtiMark(size: 28),
+          const SizedBox(width: 10),
           Text(s.appName),
           const SizedBox(width: 12),
-          if (wide) Text(s.tagline, style: Theme.of(context).textTheme.bodySmall),
+          if (wide) Flexible(child: Text(s.tagline, style: const TextStyle(fontSize: 13, color: DColors.muted))),
         ]),
+        actions: [
+          LanguageSwitch(
+            hindi: hi,
+            onInk: false,
+            onChanged: (v) => ref.read(localeProvider.notifier).set(v ? 'hi' : 'en'),
+          ),
+          const SizedBox(width: 12),
+        ],
       ),
       body: wide
           ? Row(children: [

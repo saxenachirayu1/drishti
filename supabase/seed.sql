@@ -92,3 +92,22 @@ insert into public.city_scores (city_id, period, score, active_sites, burn_event
   ('22222222-2222-2222-2222-222222222222', '2026-05', 74, 0, 0, 30, 0), ('22222222-2222-2222-2222-222222222222', '2026-06', 74, 0, 0, 30, 0),
   ('22222222-2222-2222-2222-222222222222', '2026-07', 75, 0, 0, 30, 0), ('22222222-2222-2222-2222-222222222222', '2026-08', 75, 0, 0, 30, 0)
 on conflict (city_id, period) do nothing;
+
+-- Areas for the home page search (centres are approximate). Kothrud and Aundh
+-- are outside the demo ward, so they show how an uncovered ward reads.
+insert into public.localities (id, city_id, name, name_hi, pincode, centroid) values
+  ('loc-pune-shivajinagar', '11111111-1111-1111-1111-111111111111', 'Shivajinagar', 'शिवाजीनगर', '411005', ST_SetSRID(ST_Point(73.8475, 18.5308), 4326)),
+  ('loc-pune-deccan', '11111111-1111-1111-1111-111111111111', 'Deccan Gymkhana', 'डेक्कन जिमखाना', '411004', ST_SetSRID(ST_Point(73.8411, 18.5167), 4326)),
+  ('loc-pune-kothrud', '11111111-1111-1111-1111-111111111111', 'Kothrud', 'कोथरुड', '411038', ST_SetSRID(ST_Point(73.8077, 18.5074), 4326)),
+  ('loc-pune-aundh', '11111111-1111-1111-1111-111111111111', 'Aundh', 'औंध', '411007', ST_SetSRID(ST_Point(73.8070, 18.5590), 4326)),
+  ('loc-ind-rau', 'indore', 'Rau', 'राऊ', '453331', ST_SetSRID(ST_Point(75.8110, 22.6360), 4326)),
+  ('loc-ind-sudama', 'indore', 'Sudama Nagar', 'सुदामा नगर', '452009', ST_SetSRID(ST_Point(75.8300, 22.6900), 4326)),
+  ('loc-bho-kolar', 'bhopal', 'Kolar Road', 'कोलार रोड', '462042', ST_SetSRID(ST_Point(77.4100, 23.1800), 4326)),
+  ('loc-del-okhla', '22222222-2222-2222-2222-222222222222', 'Okhla', 'ओखला', '110020', ST_SetSRID(ST_Point(77.2700, 28.5300), 4326))
+on conflict (id) do nothing;
+
+-- One made-up PWD road through the Pune demo ward, so debris routing can be tried.
+insert into public.pwd_roads (id, city_id, name, geom) values
+  ('pwd-pune-demo', '11111111-1111-1111-1111-111111111111', 'PWD road (demo)',
+   ST_SetSRID(ST_MakeLine(ST_Point(73.8450, 18.5150), ST_Point(73.8750, 18.5150)), 4326))
+on conflict (id) do nothing;

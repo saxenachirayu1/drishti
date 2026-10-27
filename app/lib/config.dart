@@ -18,4 +18,9 @@ class AppConfig {
   /// Member C's FastAPI service. Empty = the app does everything itself
   /// against Supabase (template complaints, local assistant, SQL score).
   static const apiBaseUrl = String.fromEnvironment('API_BASE_URL');
+
+  /// --dart-define=DEMO=true: complaints, tracking, the console and impact run
+  /// on sample data in memory (for showing the app on localhost with no
+  /// database). The app shows a DEMO banner.
+  static const demo = bool.fromEnvironment('DEMO');
 }

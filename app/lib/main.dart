@@ -7,13 +7,17 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'config.dart';
 import 'l10n/l10n.dart';
 import 'providers.dart';
-import 'screens/home_shell.dart';
+import 'screens/landing_screen.dart';
+import 'theme/drishti_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Supabase.initialize(url: AppConfig.supabaseUrl, publishableKey: AppConfig.supabaseAnonKey);
   final prefs = await SharedPreferences.getInstance();
   runApp(ProviderScope(
+    // Try a failed load twice more, then show the error with a retry button
+    // instead of spinning while the server keeps refusing.
+    retry: (count, error) => count < 2 ? const Duration(seconds: 2) : null,
     overrides: [prefsProvider.overrideWithValue(prefs)],
     child: const DrishtiApp(),
   ));
@@ -34,10 +38,16 @@ class DrishtiApp extends ConsumerWidget {
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1D6B5F)),
-          useMaterial3: true,
-        ),
-        home: const HomeShell(),
+        theme: drishtiTheme(hindi: ref.watch(hindiProvider)),
+        home: const LandingScreen(),
+        // Demo mode says so on every screen.
+        builder: AppConfig.demo
+            ? (context, child) => Banner(
+                message: 'DEMO DATA',
+                location: BannerLocation.bottomStart,
+                color: DColors.filed,
+                child: child ?? const SizedBox.shrink(),
+              )
+            : null,
       );
 }

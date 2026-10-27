@@ -161,6 +161,7 @@ class Profile {
     this.fullName,
     this.cityId,
     this.wardId,
+    this.department,
   });
 
   final String userId;
@@ -170,6 +171,9 @@ class Profile {
   final String? cityId;
   final String? wardId;
   final String language; // English | Hindi
+
+  /// swm | pwd | cnd for department officers; the complaints console opens on it.
+  final String? department;
 
   bool get isStaff => role == 'officer' || role == 'board' || role == 'admin';
   bool get canAct => role == 'officer' || role == 'admin';
@@ -183,5 +187,6 @@ class Profile {
         cityId: m['city_id'] as String?,
         wardId: m['ward_id'] as String?,
         language: m['language'] as String? ?? 'English',
+        department: m['department'] as String?,
       );
 }

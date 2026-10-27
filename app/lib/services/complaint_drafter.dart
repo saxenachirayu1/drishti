@@ -39,7 +39,7 @@ class ComplaintDrafter {
         if (site.highFireRisk) '- आग का जोखिम अधिक है (स्कोर ${site.fireRisk}/100)।',
         if (conf != null) '- मॉडल का विश्वास स्तर: $conf%',
         '',
-        'ठोस अपशिष्ट प्रबंधन नियम, 2016 के अंतर्गत, कृपया इस स्थल का निरीक्षण कराएँ और यदि कचरा पाया जाए तो उसे हटवाने की व्यवस्था करें। '
+        'ठोस अपशिष्ट प्रबंधन नियम, 2026 (1 अप्रैल 2026 से लागू) के अंतर्गत, कृपया इस स्थल का निरीक्षण कराएँ और यदि कचरा पाया जाए तो उसे हटवाने की व्यवस्था करें। '
             'Drishti आने वाले उपग्रह चित्रों में इस स्थल की सफाई की पुष्टि करेगा।',
         '',
         'यह सूचना स्वचालित उपग्रह विश्लेषण पर आधारित है और किसी व्यक्ति या संस्था पर आरोप नहीं है।',
@@ -65,7 +65,7 @@ class ComplaintDrafter {
       if (site.highFireRisk) '- Fire risk is high (score ${site.fireRisk}/100).',
       if (conf != null) '- Model confidence: $conf%',
       '',
-      'Under the Solid Waste Management Rules, 2016, we request that the site be inspected and, '
+      'Under the Solid Waste Management Rules, 2026 (in force from 1 April 2026), we request that the site be inspected and, '
           'if waste is found, cleared. Drishti will check the clean-up in the next satellite passes.',
       '',
       'This notice is based on automated satellite analysis and does not accuse any person or organisation.',

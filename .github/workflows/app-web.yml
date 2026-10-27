@@ -8,7 +8,7 @@ on:
     branches: [main]
     paths: ["app/**", ".github/workflows/app-web.yml"]
   pull_request:
-    paths: ["app/**"]
+    paths: ["app/**", ".github/workflows/app-web.yml"]
   workflow_dispatch:
 
 permissions:
@@ -23,6 +23,10 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # to publish PR screenshots to the ci/screenshots branch
+      pages: write
+      id-token: write
     defaults:
       run:
         working-directory: app
@@ -33,14 +37,57 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get
-      - run: flutter analyze
-      - run: flutter test test/widget_test.dart
+      - run: tool/ci_annotate.sh "flutter analyze" ' • |error|warning' -- flutter analyze
+      # Unit, widget and flow tests. live_supabase_test.dart skips itself
+      # unless DRISHTI_LIVE=1.
+      - env:
+          CONTEXT: "4"
+          LINES_MAX: "400"
+        run: tool/ci_annotate.sh "flutter test" 'EXCEPTION CAUGHT|The following|overflowed|Expected:|Actual:|Which:|test/[a-z_]+\.dart [0-9]+:[0-9]+|lib/[a-z_/]+\.dart [0-9]+:[0-9]+|\[E\]|Bad state|Exception:|was thrown|Error:|failed|Failed assertion|Some tests failed' -- flutter test
       # API_BASE_URL: set it under Settings -> Secrets and variables -> Actions -> Variables
       # once Member C's API is deployed; empty means the app works directly on Supabase.
       - run: >
+          tool/ci_annotate.sh "flutter build web" 'Error|error' --
           flutter build web --release
           --base-href "/${{ github.event.repository.name }}/"
           --dart-define=API_BASE_URL=${{ vars.API_BASE_URL }}
+      # Open the built site in Chromium: it must render the home page, switch
+      # to Hindi, and log no script errors. Screenshots are kept for review.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Browser smoke test
+        run: |
+          npm install --no-save --no-package-lock playwright@1.48.2
+          npx playwright install --with-deps chromium
+          tool/ci_annotate.sh "web smoke" 'FAIL|Error' -- node web_smoke/smoke.mjs build/web "/${{ github.event.repository.name }}/"
+      # The localhost demo: the same app on built-in sample data (DEMO=true),
+      # built for the site root so it runs from any folder with a static server.
+      - name: Build and check the localhost demo
+        run: |
+          tool/ci_annotate.sh "demo build" 'Error|error' -- flutter build web --release --dart-define=DEMO=true --base-href / -o build/demo
+          tool/ci_annotate.sh "demo smoke" 'FAIL|Error' -- node web_smoke/smoke.mjs build/demo / demo-
+          cp ../docs/LOCAL_DEMO.md build/demo/README.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: drishti-demo-web
+          path: app/build/demo
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: web-smoke-screenshots
+          path: app/web_smoke/out
+          if-no-files-found: ignore
+      # Reviewers (and Claude, which cannot download artifacts) read the
+      # screenshots from the ci/screenshots branch.
+      - name: Publish screenshots for review
+        if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        working-directory: app/web_smoke/out
+        run: |
+          [ -n "$(ls -A 2>/dev/null)" ] || exit 0
+          git init -q && git checkout -q -b ci/screenshots
+          git add . && git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -qm "Screenshots for ${{ github.sha }}"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ci/screenshots
       - uses: actions/upload-pages-artifact@v3
         if: github.ref == 'refs/heads/main'
         with:
