@@ -5,6 +5,7 @@ import 'package:image/image.dart' as img;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/ticket.dart';
+import 'area_search.dart';
 
 /// Complaints, tracking, areas and impact: everything the design D screens
 /// read and write. An interface so the screens can be tested without a server.
@@ -79,8 +80,18 @@ class SupabaseComplaints implements ComplaintsApi {
 
   @override
   Future<List<AreaHit>> areaLookup(String query) async {
-    final rows = await db.rpc('area_lookup', params: {'q': query}) as List;
-    return [for (final r in rows) AreaHit.fromMap(_map(r))];
+    final q = parseAreaQuery(query);
+    if (q is TooShort || q is BadPin) return const [];
+    final text = q is PinQuery ? q.pin : query.trim();
+    try {
+      final rows = await db.rpc('area_lookup', params: {'q': text}).timeout(const Duration(seconds: 8)) as List;
+      final hits = [for (final r in rows) AreaHit.fromMap(_map(r))];
+      // Nothing named there: still answer for any PIN code in a covered city.
+      return hits.isNotEmpty ? hits : localAreaLookup(text);
+    } catch (_) {
+      // Server unreachable, or its search not installed yet: answer locally.
+      return localAreaLookup(text);
+    }
   }
 
   @override

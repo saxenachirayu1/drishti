@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import '../models/ticket.dart';
+import 'area_search.dart';
 import 'complaints_api.dart';
 
 /// Demo mode (`--dart-define=DEMO=true`): the complaint features run on
@@ -33,36 +34,19 @@ class DemoComplaints implements ComplaintsApi {
 
   static const _pune = '11111111-1111-1111-1111-111111111111';
 
-  static final areas = <AreaHit>[
-    _area('loc-pune-shivajinagar', 'Shivajinagar', 'शिवाजीनगर', '411005', 18.5308, 73.8475, open: 2),
-    _area('loc-pune-deccan', 'Deccan Gymkhana', 'डेक्कन जिमखाना', '411004', 18.5167, 73.8411, open: 1),
-    _area('loc-pune-kothrud', 'Kothrud', 'कोथरुड', '411038', 18.5074, 73.8077, open: 3),
-    _area('loc-pune-aundh', 'Aundh', 'औंध', '411007', 18.5590, 73.8070, open: 0),
-    _area('loc-ind-rau', 'Rau', 'राऊ', '453331', 22.6360, 75.8110, city: 'Indore', cityId: 'indore', open: 2),
-    _area('loc-ind-sudama', 'Sudama Nagar', 'सुदामा नगर', '452009', 22.6900, 75.8300,
-        city: 'Indore', cityId: 'indore', open: 1),
-    _area('loc-bho-kolar', 'Kolar Road', 'कोलार रोड', '462042', 23.1800, 77.4100, city: 'Bhopal', cityId: 'bhopal', open: 1),
-    _area('loc-del-okhla', 'Okhla', 'ओखला', '110020', 28.5300, 77.2700, city: 'Delhi', cityId: 'delhi', open: 0),
-  ];
+  /// Sample open-record counts for the named areas.
+  static const _openSites = {
+    'loc-pune-shivajinagar': 2,
+    'loc-pune-deccan': 1,
+    'loc-pune-kothrud': 3,
+    'loc-pune-aundh': 0,
+    'loc-ind-rau': 2,
+    'loc-ind-sudama': 1,
+    'loc-bho-kolar': 1,
+    'loc-del-okhla': 0,
+  };
 
-  static AreaHit _area(String id, String name, String hi, String pin, double lat, double lng,
-      {String city = 'Pune', String cityId = _pune, int open = 0}) {
-    final today = DateTime.now();
-    final last = DateTime(today.year, today.month, today.day).subtract(Duration(days: (today.day % 5) + 1));
-    return AreaHit(
-      id: id,
-      name: name,
-      nameHi: hi,
-      pincode: pin,
-      cityId: cityId,
-      cityName: city,
-      lat: lat,
-      lng: lng,
-      openSites: open,
-      lastPass: last,
-      nextPass: last.add(const Duration(days: 5)),
-    );
-  }
+  static final areas = <AreaHit>[for (final a in knownAreas) knownAreaHit(a, openSites: _openSites[a.$1])];
 
   /// The demo ward (same box as the seed data) and the demo PWD road.
   static bool _inDemoWard(double lat, double lng) => lat >= 18.50 && lat <= 18.54 && lng >= 73.84 && lng <= 73.88;
@@ -84,15 +68,12 @@ class DemoComplaints implements ComplaintsApi {
   // --- reads -----------------------------------------------------------------
 
   @override
-  Future<List<AreaHit>> areaLookup(String query) async {
-    final q = query.trim();
-    if (q.length < 2) return const [];
-    final lower = q.toLowerCase();
-    return [
-      for (final a in areas)
-        if (a.name.toLowerCase().startsWith(lower) || a.pincode == q || (a.nameHi ?? '').startsWith(q)) a,
-    ].take(5).toList();
-  }
+  Future<List<AreaHit>> areaLookup(String query) async => [
+    for (final h in localAreaLookup(query))
+      _openSites.containsKey(h.id) ? knownAreaHit(_known(h.id), openSites: _openSites[h.id]) : h,
+  ];
+
+  static KnownArea _known(String id) => knownAreas.firstWhere((a) => a.$1 == id);
 
   @override
   Future<RoutePreview> routePreview({required double lat, required double lng, required String category}) async {
@@ -111,9 +92,9 @@ class DemoComplaints implements ComplaintsApi {
 
   @override
   Future<List<Ticket>> mine() async => [
-        for (final t in _tickets)
-          if (t.userId == citizenId) t,
-      ];
+    for (final t in _tickets)
+      if (t.userId == citizenId) t,
+  ];
 
   @override
   Future<Ticket?> track(String ticketCode) async {
@@ -133,9 +114,9 @@ class DemoComplaints implements ComplaintsApi {
 
   @override
   Future<List<Ticket>> queue({String? department}) async => [
-        for (final t in _tickets)
-          if (department == null || t.department == department) t,
-      ];
+    for (final t in _tickets)
+      if (department == null || t.department == department) t,
+  ];
 
   @override
   Future<Impact> impact({String? cityId}) async {
@@ -280,15 +261,19 @@ class DemoComplaints implements ComplaintsApi {
   Future<void> transfer(String reportId, String department) async {
     final i = _index(reportId);
     final t = _tickets[i];
-    _tickets[i] = _copy(t, department: department, updates: [
-      ...t.updates,
-      TicketUpdate(
-        stage: 'note',
-        authorRole: 'department',
-        message: 'Transferred to ${_deptName[department]}',
-        createdAt: DateTime.now(),
-      ),
-    ]);
+    _tickets[i] = _copy(
+      t,
+      department: department,
+      updates: [
+        ...t.updates,
+        TicketUpdate(
+          stage: 'note',
+          authorRole: 'department',
+          message: 'Transferred to ${_deptName[department]}',
+          createdAt: DateTime.now(),
+        ),
+      ],
+    );
     _changes.add(null);
   }
 
@@ -297,17 +282,22 @@ class DemoComplaints implements ComplaintsApi {
     final i = _index(reportId);
     final t = _tickets[i];
     final now = DateTime.now();
-    _tickets[i] = _copy(t, stage: 'reopened', resolvedAt: null, clearResolved: true,
-        replyDueAt: now.add(Duration(hours: complaintType(t.category).replyHours)),
-        updates: [
-          ...t.updates,
-          TicketUpdate(
-            stage: 'reopened',
-            authorRole: 'citizen',
-            message: (reason ?? '').isEmpty ? 'Not fixed yet' : reason,
-            createdAt: now,
-          ),
-        ]);
+    _tickets[i] = _copy(
+      t,
+      stage: 'reopened',
+      resolvedAt: null,
+      clearResolved: true,
+      replyDueAt: now.add(Duration(hours: complaintType(t.category).replyHours)),
+      updates: [
+        ...t.updates,
+        TicketUpdate(
+          stage: 'reopened',
+          authorRole: 'citizen',
+          message: (reason ?? '').isEmpty ? 'Not fixed yet' : reason,
+          createdAt: now,
+        ),
+      ],
+    );
     _changes.add(null);
   }
 
@@ -327,15 +317,19 @@ class DemoComplaints implements ComplaintsApi {
     final i = _index(reportId);
     final t = _tickets[i];
     if (t.stage != 'resolved') return;
-    _tickets[i] = _copy(t, stage: 'proven_clean', updates: [
-      ...t.updates,
-      TicketUpdate(
-        stage: 'proven_clean',
-        authorRole: 'system',
-        message: 'The satellite shows the site clear on two passes.',
-        createdAt: DateTime.now(),
-      ),
-    ]);
+    _tickets[i] = _copy(
+      t,
+      stage: 'proven_clean',
+      updates: [
+        ...t.updates,
+        TicketUpdate(
+          stage: 'proven_clean',
+          authorRole: 'system',
+          message: 'The satellite shows the site clear on two passes.',
+          createdAt: DateTime.now(),
+        ),
+      ],
+    );
     _changes.add(null);
   }
 
@@ -348,29 +342,28 @@ class DemoComplaints implements ComplaintsApi {
     bool clearResolved = false,
     DateTime? replyDueAt,
     List<TicketUpdate>? updates,
-  }) =>
-      Ticket(
-        id: t.id,
-        ticket: t.ticket,
-        category: t.category,
-        stage: stage ?? t.stage,
-        department: department ?? t.department,
-        userId: t.userId,
-        wardNo: t.wardNo,
-        wardName: t.wardName,
-        locality: t.locality,
-        note: t.note,
-        photoUrl: t.photoUrl,
-        linkedSiteId: t.linkedSiteId,
-        createdAt: t.createdAt,
-        replyDueAt: replyDueAt ?? t.replyDueAt,
-        firstReplyAt: firstReplyAt ?? t.firstReplyAt,
-        resolvedAt: clearResolved ? null : (resolvedAt ?? t.resolvedAt),
-        updatedAt: DateTime.now(),
-        lat: t.lat,
-        lng: t.lng,
-        updates: updates ?? t.updates,
-      );
+  }) => Ticket(
+    id: t.id,
+    ticket: t.ticket,
+    category: t.category,
+    stage: stage ?? t.stage,
+    department: department ?? t.department,
+    userId: t.userId,
+    wardNo: t.wardNo,
+    wardName: t.wardName,
+    locality: t.locality,
+    note: t.note,
+    photoUrl: t.photoUrl,
+    linkedSiteId: t.linkedSiteId,
+    createdAt: t.createdAt,
+    replyDueAt: replyDueAt ?? t.replyDueAt,
+    firstReplyAt: firstReplyAt ?? t.firstReplyAt,
+    resolvedAt: clearResolved ? null : (resolvedAt ?? t.resolvedAt),
+    updatedAt: DateTime.now(),
+    lat: t.lat,
+    lng: t.lng,
+    updates: updates ?? t.updates,
+  );
 
   // --- sample data -------------------------------------------------------------
 

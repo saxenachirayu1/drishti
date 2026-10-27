@@ -11,6 +11,7 @@ import 'package:drishti/screens/impact_screen.dart';
 import 'package:drishti/screens/landing_screen.dart';
 import 'package:drishti/screens/raise_screen.dart';
 import 'package:drishti/screens/track_screen.dart';
+import 'package:drishti/services/area_search.dart';
 import 'package:drishti/services/demo_complaints.dart';
 import 'package:drishti/services/drishti_repo.dart';
 import 'package:drishti/services/tracking_logic.dart';
@@ -570,6 +571,60 @@ void main() {
       await demo.submit(lat: 18.531, lng: 73.848, category: 'burning');
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('ticket-demo-411')), findsOneWidget);
+    });
+  });
+
+  group('PIN code search', () {
+    test('reads PIN codes forgivingly and rejects ones that cannot exist', () {
+      expect(parseAreaQuery('411005'), isA<PinQuery>().having((q) => q.pin, 'pin', '411005'));
+      expect(parseAreaQuery(' 411 005 '), isA<PinQuery>().having((q) => q.pin, 'pin', '411005'));
+      expect(parseAreaQuery('411-005'), isA<PinQuery>().having((q) => q.pin, 'pin', '411005'));
+      expect(parseAreaQuery('41100'), isA<BadPin>());
+      expect(parseAreaQuery('011005'), isA<BadPin>());
+      expect(parseAreaQuery('4110055'), isA<BadPin>());
+      expect(parseAreaQuery('k'), isA<TooShort>());
+      expect(parseAreaQuery('Kothrud'), isA<NameQuery>());
+    });
+
+    test('every PIN in the four live cities resolves; others do not', () {
+      expect(localAreaLookup('411005').single.name, 'Shivajinagar');
+      expect(localAreaLookup('411001').single, isA<AreaHit>().having((a) => a.cityName, 'city', 'Pune'));
+      expect(localAreaLookup('412105').single.cityName, 'Pune');
+      expect(localAreaLookup('110001').single.cityName, 'Delhi');
+      expect(localAreaLookup('452001').single.cityName, 'Indore');
+      expect(localAreaLookup('462011').single.cityName, 'Bhopal');
+      expect(localAreaLookup('411001').single.isNamedArea, isFalse);
+      expect(localAreaLookup('411001').single.openSites, isNull);
+      expect(localAreaLookup('576104'), isEmpty); // Manipal: not covered yet
+      expect(localAreaLookup('pune').map((a) => a.name), contains('Pune'));
+      final (last, next) = passesAround(DateTime(2026, 10, 27, 15));
+      expect(next.difference(last).inDays, 5);
+      expect(!last.isAfter(DateTime(2026, 10, 27)) && next.isAfter(DateTime(2026, 10, 27)), isTrue);
+    });
+
+    testWidgets('home page: a city PIN, a bad PIN and an uncovered PIN', (tester) async {
+      await _pump(tester, const LandingScreen(), DemoComplaints());
+      Future<void> search(String q) async {
+        await tester.enterText(find.byKey(const ValueKey('area-search')), q);
+        await tester.testTextInput.receiveAction(TextInputAction.search);
+        await tester.pumpAndSettle();
+      }
+
+      await search('411001');
+      expect(find.text(_en.pinTitle('411001', 'Pune')), findsOneWidget);
+      expect(find.textContaining(_en.coveredCity('Pune')), findsOneWidget);
+      expect(find.text(_en.seeOnMap), findsOneWidget);
+      expect(find.text(_en.followNamed), findsOneWidget);
+
+      await search('411 005');
+      expect(find.text('Shivajinagar, Pune · 411005'), findsOneWidget);
+      expect(find.textContaining(_en.openRecords(2)), findsOneWidget);
+
+      await search('4110');
+      expect(find.text(_en.badPinTitle), findsOneWidget);
+
+      await search('576104');
+      expect(find.text(_en.searchMissTitle), findsOneWidget);
     });
   });
 }
