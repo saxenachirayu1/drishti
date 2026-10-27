@@ -47,3 +47,6 @@ supabase/.temp/
 # Flutter web smoke test
 app/node_modules/
 app/web_smoke/out/
+
+# local credential helper, never commit
+set-demo-passwords.sh

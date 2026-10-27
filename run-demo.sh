@@ -18,6 +18,13 @@ API_PORT="${API_PORT:-8000}"
 WEB_PORT="${WEB_PORT:-5173}"
 PYTHON="${PYTHON:-python3}"
 
+# Demo mode is the default: the complaint flow, tracking, the department
+# console and the pincode search run on sample data held in the browser, so
+# they work with no database and no keys. Set DEMO=false to run the dashboard
+# against live Supabase instead — which needs the complaint-tracking migration
+# applied, or the pincode search reports "could not find places".
+DEMO="${DEMO:-true}"
+
 say() { printf '\n\033[1m%s\033[0m\n' "$*"; }
 die() { printf '\n\033[31m%s\033[0m\n' "$*" >&2; exit 1; }
 
@@ -56,8 +63,9 @@ if command -v flutter >/dev/null 2>&1; then
   cd "$ROOT/app"
   flutter pub get >/dev/null
   flutter build web --release \
+    --dart-define=DEMO="$DEMO" \
     --dart-define=API_BASE_URL="http://127.0.0.1:$API_PORT" >/dev/null
-  say "Serving the dashboard on :$WEB_PORT"
+  say "Serving the dashboard on :$WEB_PORT (DEMO=$DEMO)"
   (cd build/web && "$ROOT/api/.venv/bin/python" -m http.server "$WEB_PORT" --bind 127.0.0.1 >/dev/null 2>&1) &
   WEB_PID=$!
   WEB_LINE="  dashboard: http://127.0.0.1:$WEB_PORT"
@@ -83,6 +91,10 @@ Try the flow on /docs:
 
   Add "language":"Hindi" to a complaint for a Hindi letter and PDF.
   Admin-only routes need DEV_ROLE=admin ./run-demo.sh
+
+On the dashboard (DEMO=$DEMO): try a pincode such as 411005, 411004, 411007
+or 411038. In demo mode every screen carries a DEMO DATA ribbon and nothing
+is saved across a reload. DEMO=false ./run-demo.sh uses live Supabase.
 
 Press Ctrl+C to stop.
 EOF
