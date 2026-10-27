@@ -3,20 +3,30 @@ Assistant tools (C-15, C-16, C-19). The assistant never writes SQL and never
 reads anything outside this fixed set of read-only tools. A guardrail blocks
 off-topic questions and ignores instructions hidden in the question text.
 """
+import re
+
 from ..config import settings
 from ..repo import get_repo
 
 ON_TOPIC = ("site", "dump", "waste", "ward", "fire", "burn", "city", "river",
             "water", "clean", "score", "complaint")
 
-# crude injection guard: refuse if the user tries to redirect the assistant
-INJECTION = ("ignore previous", "ignore the above", "system prompt",
-             "reveal", "api key", "password", "secret")
+# Injection guard: refuse if the question tries to redirect the assistant.
+# Matched as a regex rather than fixed strings, because "ignore all previous
+# instructions" and "disregard the above" walked straight past the literal
+# list while "ignore previous" was caught.
+INJECTION_RE = re.compile(
+    r"(ignore|disregard|forget|override)\b[^.]{0,40}\b"
+    r"(previous|prior|above|earlier|instruction|prompt|rule)"
+    r"|system prompt|you are now|act as|pretend to be"
+    r"|reveal|api[ _-]?key|password|secret|credential|token",
+    re.IGNORECASE,
+)
 
 
 def guard(question: str):
     q = question.lower()
-    if any(bad in q for bad in INJECTION):
+    if INJECTION_RE.search(question):
         return "I can only answer questions about dumpsites, wards, fires and city scores."
     if not any(word in q for word in ON_TOPIC):
         return "I can only help with Drishti's dumpsite, ward, fire and city-score data."
