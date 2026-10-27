@@ -183,7 +183,7 @@ class AreaHit {
     this.cityId,
     this.lat,
     this.lng,
-    this.openSites = 0,
+    this.openSites,
     this.lastPass,
     this.nextPass,
   });
@@ -196,7 +196,11 @@ class AreaHit {
   final String cityName;
   final double? lat;
   final double? lng;
-  final int openSites;
+  /// Open satellite records within 3 km; null when not known (offline search).
+  final int? openSites;
+
+  /// A named area (followable), as opposed to a whole city or a bare PIN code.
+  bool get isNamedArea => !id.startsWith('pin-') && !id.startsWith('city-');
   final DateTime? lastPass;
   final DateTime? nextPass;
 
@@ -213,7 +217,7 @@ class AreaHit {
     cityName: m['city_name'] as String? ?? '',
     lat: asDouble(m['lat']),
     lng: asDouble(m['lng']),
-    openSites: asInt(m['open_sites']) ?? 0,
+    openSites: asInt(m['open_sites']),
     lastPass: asDate(m['last_pass']),
     nextPass: asDate(m['next_pass']),
   );

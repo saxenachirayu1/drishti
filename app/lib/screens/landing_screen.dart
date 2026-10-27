@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../complaints_providers.dart';
 import '../models/ticket.dart';
+import '../services/area_search.dart';
 import '../providers.dart';
 import '../theme/d_strings.dart';
 import '../theme/drishti_theme.dart';
@@ -30,6 +31,10 @@ class _Empty extends _Search {
 
 class _Miss extends _Search {
   const _Miss();
+}
+
+class _BadPin extends _Search {
+  const _BadPin();
 }
 
 class _Failed extends _Search {
@@ -61,8 +66,13 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
 
   Future<void> _search() async {
     final q = _query.text.trim();
-    if (q.isEmpty) {
+    final parsed = parseAreaQuery(q);
+    if (parsed is TooShort) {
       setState(() => _result = const _Empty());
+      return;
+    }
+    if (parsed is BadPin) {
+      setState(() => _result = const _BadPin());
       return;
     }
     setState(() => _searching = true);
@@ -312,11 +322,16 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
     final (String title, String body) = switch (r) {
       _Empty() => (ds.searchEmptyTitle, ds.searchEmptyBody),
       _Miss() => (ds.searchMissTitle, ds.searchMissBody),
+      _BadPin() => (ds.badPinTitle, ds.badPinBody),
       _Failed() => (ds.searchFailed, ''),
       _Hit(:final area) => (
-        '${area.label(ds.hindi)}, ${area.cityName}${area.pincode == null ? '' : ' · ${area.pincode}'}',
+        area.isNamedArea
+            ? '${area.label(ds.hindi)}, ${area.cityName}${area.pincode == null ? '' : ' · ${area.pincode}'}'
+            : area.pincode != null
+            ? ds.pinTitle(area.pincode!, area.label(ds.hindi))
+            : area.label(ds.hindi),
         [
-          ds.openRecords(area.openSites),
+          if (area.openSites != null) ds.openRecords(area.openSites!) else ds.coveredCity(area.label(ds.hindi)),
           if (area.lastPass != null) ds.lastPass(DateFormat('d MMM').format(area.lastPass!)),
         ].join(' '),
       ),
@@ -512,6 +527,8 @@ class _LandingScreenState extends ConsumerState<LandingScreen> {
 
     final button = area == null
         ? DSecondaryButton(label: ds.followFind, onPressed: _findArea)
+        : !area.isNamedArea
+        ? DSecondaryButton(label: ds.followNamed, onPressed: _findArea)
         : on
         ? DSecondaryButton(
             label: ds.following(area.label(ds.hindi)),

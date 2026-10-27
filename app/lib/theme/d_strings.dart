@@ -26,6 +26,13 @@ class DS {
   String get searchMissTitle => _('We do not cover this area yet', 'यह इलाका अभी शामिल नहीं');
   String get searchMissBody =>
       _('Pune, Delhi, Indore and Bhopal are live today.', 'अभी पुणे, दिल्ली, इंदौर और भोपाल शामिल हैं।');
+  String get badPinTitle => _('That is not a PIN code', 'यह पिन कोड नहीं है');
+  String get badPinBody => _('A PIN code has six digits and does not start with 0, like 411005.',
+      'पिन कोड छह अंकों का होता है और 0 से शुरू नहीं होता, जैसे 411005।');
+  String coveredCity(String city) => _('$city is covered: the satellite checks the whole city every five days.',
+      '$city शामिल है: सैटेलाइट हर पाँच दिन पूरे शहर की जाँच करता है।');
+  String pinTitle(String pin, String city) => _('PIN $pin · $city', 'पिन $pin · $city');
+  String get followNamed => _('Search an area name to follow it', 'फ़ॉलो करने के लिए इलाके का नाम खोजें');
   String get searchFailed =>
       _('Could not search right now. Check the connection.', 'अभी खोज नहीं हो सकी। इंटरनेट देखें।');
   String openRecords(int n) => n == 0
