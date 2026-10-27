@@ -9,7 +9,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 
-const [root, base = '/'] = process.argv.slice(2);
+const [root, base = '/', prefix = ''] = process.argv.slice(2);
 const out = 'web_smoke/out';
 fs.mkdirSync(out, { recursive: true });
 
@@ -25,8 +25,9 @@ const server = http.createServer((req, res) => {
   res.writeHead(200, { 'content-type': types[path.extname(file)] ?? 'application/octet-stream' });
   fs.createReadStream(file).pipe(res);
 });
-await new Promise((r) => server.listen(8089, r));
-const url = `http://localhost:8089${base}`;
+const port = 8089 + (prefix ? 1 : 0);
+await new Promise((r) => server.listen(port, r));
+const url = `http://localhost:${port}${base}`;
 
 const failures = [];
 const check = (ok, what) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${what}`); if (!ok) failures.push(what); };
@@ -49,7 +50,7 @@ async function run(name, viewport) {
   check(t0.includes('Your city, seen from space every five days.'), `${name}: headline rendered`);
   check(t0.includes('Raise a complaint'), `${name}: primary action rendered`);
   await page.waitForTimeout(3000); // let the one-time scan finish
-  await page.screenshot({ path: `${out}/${name}-home.png`, fullPage: false });
+  await page.screenshot({ path: `${out}/${prefix}${name}-home.png`, fullPage: false });
 
   // Language switch
   const hi = page.getByRole('button', { name: 'हिंदी' }).first();
@@ -57,7 +58,7 @@ async function run(name, viewport) {
     await hi.click();
     await page.waitForTimeout(1500);
     check((await text()).includes('आपका शहर, हर पाँच दिन में अंतरिक्ष से।'), `${name}: Hindi headline after switch`);
-    await page.screenshot({ path: `${out}/${name}-home-hi.png` });
+    await page.screenshot({ path: `${out}/${prefix}${name}-home-hi.png` });
   } else {
     check(false, `${name}: language switch found`);
   }
@@ -67,19 +68,19 @@ async function run(name, viewport) {
     for (let i = 1; i <= 3; i++) {
       await page.mouse.wheel(0, 850);
       await page.waitForTimeout(900);
-      await page.screenshot({ path: `${out}/${name}-home-${i}.png` });
+      await page.screenshot({ path: `${out}/${prefix}${name}-home-${i}.png` });
     }
     await page.goto(url, { waitUntil: 'load' });
     await page.waitForSelector('flt-glass-pane, flutter-view', { timeout: 60000 });
     await page.waitForTimeout(3000);
     await page.evaluate(() => document.querySelector('flt-semantics-placeholder')?.click());
     await page.waitForTimeout(1000);
-    for (const [label, file] of [['Raise a complaint', 'raise'], ['Track a complaint', 'track'], ['Impact', 'impact']]) {
+    for (const [label, file] of [['Raise a complaint', 'raise'], ['Track a complaint', 'track'], ['Impact', 'impact'], ['Officials', 'console']]) {
       const b = page.getByRole('button', { name: label }).first();
       if (!(await b.count())) { check(false, `${name}: button ${label}`); continue; }
       await b.click();
       await page.waitForTimeout(3500);
-      await page.screenshot({ path: `${out}/${name}-${file}.png` });
+      await page.screenshot({ path: `${out}/${prefix}${name}-${file}.png` });
       check(true, `${name}: opened ${label}`);
       await page.goBack().catch(() => {});
       await page.keyboard.press('Escape').catch(() => {});

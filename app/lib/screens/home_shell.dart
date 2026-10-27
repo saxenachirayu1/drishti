@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../config.dart';
 import '../l10n/l10n.dart';
 import '../models/action.dart';
 import '../models/place.dart';
@@ -72,9 +73,14 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       ('track', Icons.timeline_outlined, hi ? 'स्थिति' : 'Track', const TrackScreen()),
       ('impact', Icons.insights_outlined, hi ? 'असर' : 'Impact', const ImpactScreen()),
       ('assistant', Icons.chat_outlined, s.assistant, const AssistantScreen()),
-      if (profile?.isStaff ?? false)
-        ('console', Icons.inbox_outlined, hi ? 'विभाग' : 'Console',
-            DeptConsoleScreen(canAct: profile!.canAct, department: profile.department)),
+      // In demo mode everyone gets the console, so one laptop can show both sides.
+      if ((profile?.isStaff ?? false) || AppConfig.demo)
+        (
+          'console',
+          Icons.inbox_outlined,
+          hi ? 'विभाग' : 'Console',
+          DeptConsoleScreen(canAct: AppConfig.demo || profile!.canAct, department: profile?.department),
+        ),
       if (role != 'citizen') ('complaints', Icons.description_outlined, s.complaints, const ComplaintsListScreen()),
       if (role == 'admin') ('pipeline', Icons.satellite_alt_outlined, s.pipeline, const PipelineScreen()),
       if (role == 'admin') ('review', Icons.fact_check_outlined, s.review, const ReviewScreen()),

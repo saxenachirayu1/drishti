@@ -40,5 +40,14 @@ class DrishtiApp extends ConsumerWidget {
         ],
         theme: drishtiTheme(hindi: ref.watch(hindiProvider)),
         home: const LandingScreen(),
+        // Demo mode says so on every screen.
+        builder: AppConfig.demo
+            ? (context, child) => Banner(
+                message: 'DEMO DATA',
+                location: BannerLocation.bottomStart,
+                color: DColors.filed,
+                child: child ?? const SizedBox.shrink(),
+              )
+            : null,
       );
 }

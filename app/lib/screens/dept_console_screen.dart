@@ -1,11 +1,13 @@
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../complaints_providers.dart';
 import '../models/ticket.dart';
+import '../services/demo_complaints.dart';
 import '../services/tracking_logic.dart';
 import '../theme/d_strings.dart';
 import '../theme/drishti_theme.dart';
@@ -247,7 +249,10 @@ class _ComplaintWorkspaceState extends ConsumerState<ComplaintWorkspace> {
   }
 
   Future<void> _pickAfter() async {
-    final file = await ImagePicker().pickImage(source: ImageSource.camera, maxWidth: 1600, imageQuality: 85);
+    final file = await ImagePicker().pickImage(
+      // On a laptop there is no camera roll: pick a file instead.
+      source: kIsWeb ? ImageSource.gallery : ImageSource.camera,
+      maxWidth: 1600, imageQuality: 85);
     if (file == null) return;
     final bytes = await file.readAsBytes();
     if (mounted) setState(() => _after = bytes);
@@ -501,6 +506,23 @@ class _ComplaintWorkspaceState extends ConsumerState<ComplaintWorkspace> {
       children: [
         head,
         composer,
+        if (ticket.stage == 'resolved' && ref.watch(complaintsApiProvider) is DemoComplaints)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton.icon(
+                key: const ValueKey('demo-satellite'),
+                icon: const Icon(Icons.satellite_alt_outlined),
+                label: Text(ds.hindi ? 'डेमो: अगली सैटेलाइट तस्वीरें चलाएँ' : 'Demo: run the next satellite passes'),
+                onPressed: () async {
+                  final api = ref.read(complaintsApiProvider) as DemoComplaints;
+                  await api.simulateSatelliteClear(ticket.id);
+                  ref.invalidate(ticketProvider(ticket.id));
+                },
+              ),
+            ),
+          ),
         const SizedBox(height: 12),
         SizedBox(height: 560, child: TicketDetail(ticket: ticket, live: true, showActions: false)),
       ],

@@ -1,5 +1,7 @@
 // Design D: tracking rules, models, and the home, raise, track, console and
 // impact screens driven end to end against an in-memory backend.
+import 'dart:typed_data';
+
 import 'package:drishti/complaints_providers.dart';
 import 'package:drishti/models/place.dart';
 import 'package:drishti/models/ticket.dart';
@@ -9,6 +11,7 @@ import 'package:drishti/screens/impact_screen.dart';
 import 'package:drishti/screens/landing_screen.dart';
 import 'package:drishti/screens/raise_screen.dart';
 import 'package:drishti/screens/track_screen.dart';
+import 'package:drishti/services/demo_complaints.dart';
 import 'package:drishti/services/drishti_repo.dart';
 import 'package:drishti/services/tracking_logic.dart';
 import 'package:drishti/theme/d_strings.dart';
@@ -505,6 +508,68 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('city-pune')));
       await tester.pumpAndSettle();
       expect(fake.calls, contains('impact:pune'));
+    });
+  });
+
+  group('demo mode', () {
+    test('sample data, routing, the full lifecycle and impact', () async {
+      final demo = DemoComplaints();
+      expect((await demo.areaLookup('kot')).single.name, 'Kothrud');
+      expect((await demo.areaLookup('411005')).single.name, 'Shivajinagar');
+      expect(await demo.mine(), isNotEmpty);
+      expect((await demo.queue()).length, 6);
+      expect((await demo.track('DRI-Q-0409'))!.stage, 'in_progress');
+
+      expect((await demo.routePreview(lat: 18.5151, lng: 73.86, category: 'debris')).department, 'pwd');
+      expect((await demo.routePreview(lat: 18.53, lng: 73.86, category: 'debris')).department, 'cnd');
+      final burn = await demo.routePreview(lat: 18.53, lng: 73.85, category: 'burning');
+      expect(burn.department, 'swm');
+      expect(burn.wardNo, 1);
+      expect(burn.replyHours, 2);
+
+      final res = await demo.submit(lat: 18.531, lng: 73.848, category: 'dump', note: 'Heap by the wall');
+      final id = res['id'] as String;
+      expect(res['ticket'], 'DRI-Q-0411');
+      final mine = await demo.mine();
+      expect(mine.first.id, id);
+      expect(mine.first.locality, 'Shivajinagar');
+
+      await demo.postUpdate(id, 'assigned', message: 'Inspector assigned');
+      expect((await demo.ticket(id))!.firstReplyAt, isNotNull);
+      expect(() => demo.postUpdate(id, 'resolved'), throwsStateError);
+      await demo.postUpdate(id, 'resolved', message: 'Cleared', photo: Uint8List.fromList([1, 2, 3]));
+      expect((await demo.ticket(id))!.stage, 'resolved');
+      expect(await demo.photoUrl((await demo.ticket(id))!.updates.last.photoPath), startsWith('data:image/jpeg;base64,'));
+      await demo.simulateSatelliteClear(id);
+      expect((await demo.ticket(id))!.stage, 'proven_clean');
+      await demo.reopen(id, reason: 'Back again');
+      expect((await demo.ticket(id))!.stage, 'reopened');
+
+      final i = await demo.impact();
+      expect(i.complaints, 7);
+      expect(i.byCategory['dump'], 3);
+      expect(i.repliedOnTimePct, isNotNull);
+    });
+
+    testWidgets('raise then work it in the console, on demo data', (tester) async {
+      final demo = DemoComplaints();
+      tester.view.physicalSize = const Size(1400, 1400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(ProviderScope(
+        overrides: [
+          complaintsApiProvider.overrideWithValue(demo),
+          liveDeviceProvider.overrideWithValue(false),
+        ],
+        child: MaterialApp(theme: drishtiTheme(), home: const Scaffold(body: DeptConsoleScreen())),
+      ));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('ticket-demo-409')), findsOneWidget);
+      expect(find.text(_en.nOverdue(2)), findsOneWidget); // the bin and the burning, both unanswered
+
+      await demo.submit(lat: 18.531, lng: 73.848, category: 'burning');
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('ticket-demo-411')), findsOneWidget);
     });
   });
 }

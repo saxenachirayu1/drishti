@@ -61,6 +61,17 @@ jobs:
           npm install --no-save --no-package-lock playwright@1.48.2
           npx playwright install --with-deps chromium
           tool/ci_annotate.sh "web smoke" 'FAIL|Error' -- node web_smoke/smoke.mjs build/web "/${{ github.event.repository.name }}/"
+      # The localhost demo: the same app on built-in sample data (DEMO=true),
+      # built for the site root so it runs from any folder with a static server.
+      - name: Build and check the localhost demo
+        run: |
+          tool/ci_annotate.sh "demo build" 'Error|error' -- flutter build web --release --dart-define=DEMO=true --base-href / -o build/demo
+          tool/ci_annotate.sh "demo smoke" 'FAIL|Error' -- node web_smoke/smoke.mjs build/demo / demo-
+          cp ../docs/LOCAL_DEMO.md build/demo/README.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: drishti-demo-web
+          path: app/build/demo
       - uses: actions/upload-artifact@v4
         if: always()
         with:

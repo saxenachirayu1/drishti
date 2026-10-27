@@ -4,13 +4,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'config.dart';
 import 'models/ticket.dart';
 import 'providers.dart';
 import 'services/complaints_api.dart';
+import 'services/demo_complaints.dart';
 import 'theme/d_strings.dart';
 
 /// Overridden in tests with a fake.
-final complaintsApiProvider = Provider<ComplaintsApi>((ref) => SupabaseComplaints(Supabase.instance.client));
+final complaintsApiProvider = Provider<ComplaintsApi>(
+  (ref) => AppConfig.demo ? DemoComplaints() : SupabaseComplaints(Supabase.instance.client),
+);
 
 final _authTickProvider = StreamProvider<void>((ref) => ref.watch(complaintsApiProvider).authChanges);
 
