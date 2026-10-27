@@ -49,7 +49,9 @@ def test_hindi_complaint_flow_writes_a_pdf(client, tmp_path, monkeypatch):
 
     approved = client.post(f"/complaints/{body['id']}/approve").json()
     assert approved["status"] == "approved"
-    pdf_path = approved["pdf_url"]
+    # pdf_url is a URL the dashboard can open; the file sits in OUT_DIR.
+    assert approved["pdf_url"].startswith("http")
+    pdf_path = os.path.join(str(tmp_path), f"complaint_{body['id']}.pdf")
     assert os.path.exists(pdf_path)
     assert os.path.getsize(pdf_path) > 1000
 

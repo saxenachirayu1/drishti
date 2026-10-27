@@ -1,14 +1,16 @@
+import os
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
+from fastapi.responses import FileResponse
 
 from ..auth import require
 from ..emailer import send_email
 from ..errors import api_error
 from ..granite import SUPPORTED_LANGUAGES, draft_complaint
 from ..models import ComplaintEdit, ComplaintRequest
-from ..pdf import make_complaint_pdf
+from ..pdf import OUT_DIR, make_complaint_pdf
 from ..repo import get_repo
 from ..serialize import site_facts
 
@@ -45,15 +47,32 @@ def edit_complaint(cid: str, body: ComplaintEdit, user=Depends(require("officer"
 
 
 @router.post("/complaints/{cid}/approve")
-def approve_complaint(cid: str, user=Depends(require("officer", "admin"))):
+def approve_complaint(cid: str, request: Request,
+                      user=Depends(require("officer", "admin"))):
     """C-09/10: lock the text and generate the PDF."""
     repo = get_repo()
     c = repo.get_complaint(cid)
     if not c:
         raise api_error(404, "not_found", "No such complaint")
-    path = make_complaint_pdf(cid, c["draft_text"], c.get("language", "English"))
+    make_complaint_pdf(cid, c["draft_text"], c.get("language", "English"))
+    # Store a URL the dashboard can open, not the server-side file path: the
+    # app only offers its "open PDF" button for a pdf_url starting with http.
+    pdf_url = str(request.url_for("complaint_pdf", cid=cid))
     repo.audit_add(user.user_id, "approve", "complaint", cid)
-    return repo.update_complaint(cid, status="approved", pdf_url=path, approved_by=user.user_id)
+    return repo.update_complaint(cid, status="approved", pdf_url=pdf_url,
+                                 approved_by=user.user_id)
+
+
+@router.get("/complaints/{cid}/pdf", name="complaint_pdf")
+def complaint_pdf(cid: str, user=Depends(require("officer", "admin"))):
+    """Serve the approved complaint PDF so the dashboard can open it."""
+    if not get_repo().get_complaint(cid):
+        raise api_error(404, "not_found", "No such complaint")
+    path = os.path.join(OUT_DIR, f"complaint_{cid}.pdf")
+    if not os.path.exists(path):
+        raise api_error(404, "no_pdf", "Approve the complaint first")
+    return FileResponse(path, media_type="application/pdf",
+                        filename=f"drishti-complaint-{cid}.pdf")
 
 
 @router.post("/complaints/{cid}/send")

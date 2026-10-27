@@ -77,3 +77,32 @@ def test_ward_assignment_skips_sites_that_already_have_a_ward(client):
 
     assert assign_all() == 0, "startup already assigned them; nothing left to do"
     assert assign_all(force=True) > 0, "force=True must reassign regardless"
+
+
+def test_approved_complaint_exposes_a_url_the_browser_can_open(client):
+    """The dashboard only offers its button for a pdf_url starting with http."""
+    cid = client.post("/complaints", json={"site_id": "site-1"}).json()["id"]
+    approved = client.post(f"/complaints/{cid}/approve").json()
+    assert approved["pdf_url"].startswith("http"), approved["pdf_url"]
+    assert approved["pdf_url"].endswith(f"/complaints/{cid}/pdf")
+
+
+def test_the_pdf_downloads(client):
+    cid = client.post("/complaints", json={"site_id": "site-1"}).json()["id"]
+    client.post(f"/complaints/{cid}/approve")
+    r = client.get(f"/complaints/{cid}/pdf")
+    assert r.status_code == 200
+    assert r.headers["content-type"] == "application/pdf"
+    assert r.content[:4] == b"%PDF"
+    assert "drishti-complaint" in r.headers.get("content-disposition", "")
+
+
+def test_pdf_before_approval_is_a_clear_404(client):
+    cid = client.post("/complaints", json={"site_id": "site-1"}).json()["id"]
+    r = client.get(f"/complaints/{cid}/pdf")
+    assert r.status_code == 404
+    assert r.json()["detail"]["error"]["code"] == "no_pdf"
+
+
+def test_pdf_for_an_unknown_complaint_is_404(client):
+    assert client.get("/complaints/nope/pdf").status_code == 404
