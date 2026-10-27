@@ -12,6 +12,7 @@ import 'package:drishti/screens/landing_screen.dart';
 import 'package:drishti/screens/raise_screen.dart';
 import 'package:drishti/screens/track_screen.dart';
 import 'package:drishti/services/area_search.dart';
+import 'package:drishti/services/complaints_api.dart';
 import 'package:drishti/services/demo_complaints.dart';
 import 'package:drishti/services/drishti_repo.dart';
 import 'package:drishti/services/tracking_logic.dart';
@@ -39,7 +40,7 @@ const _shivajinagar = AreaHit(
   openSites: 2,
 );
 
-Future<void> _pump(WidgetTester tester, Widget child, FakeComplaints fake, {Size size = const Size(1280, 1800)}) async {
+Future<void> _pump(WidgetTester tester, Widget child, ComplaintsApi fake, {Size size = const Size(1280, 1800)}) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
