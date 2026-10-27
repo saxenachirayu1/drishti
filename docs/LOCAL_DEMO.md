@@ -9,8 +9,12 @@ The demo is the real app with one switch, `DEMO=true`. Complaints, tracking, the
 ```bash
 cd app
 flutter pub get
-flutter run -d chrome --dart-define=DEMO=true
+flutter run -d chrome --web-port 5173 --dart-define=DEMO=true
 ```
+
+Demo mode signs you in as a sample resident, so no email is needed.
+
+To run against the real database instead (with real sign-in), leave out `--dart-define=DEMO=true` but keep `--web-port 5173`. Sign-in links only return to addresses on Supabase's allow-list, and port 5173 is on it.
 
 **Without Flutter**: download the built demo instead.
 1. Open the latest **app-web** run under the repo's Actions tab.

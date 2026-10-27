@@ -16,6 +16,10 @@ abstract class RowCache {
   Future<void> write(String key, String value);
 }
 
+/// The page a sign-in link should return to: this page, without the query
+/// or fragment from an earlier sign-in.
+String signInReturnUrl(Uri page) => page.replace(query: '', fragment: '').toString().replaceAll(RegExp(r'[?#]+$'), '');
+
 /// Every Supabase read and write the app makes. Screens never name tables.
 class DrishtiRepo {
   DrishtiRepo(this.db, {this.cache});
@@ -52,7 +56,13 @@ class DrishtiRepo {
   // --- auth (A-08) ----------------------------------------------------------
 
   /// Emails a 6-digit code (and creates the account the first time).
-  Future<void> sendCode(String email) => db.auth.signInWithOtp(email: email, shouldCreateUser: true);
+  /// Emails a code and a link. On the web the link comes back to this exact
+  /// page (localhost or GitHub Pages), where Supabase signs the user in.
+  Future<void> sendCode(String email) => db.auth.signInWithOtp(
+        email: email,
+        shouldCreateUser: true,
+        emailRedirectTo: kIsWeb ? signInReturnUrl(Uri.base) : null,
+      );
 
   Future<void> verifyCode(String email, String code) =>
       db.auth.verifyOTP(email: email, token: code, type: OtpType.email);

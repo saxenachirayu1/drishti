@@ -572,4 +572,10 @@ void main() {
       expect(find.byKey(const ValueKey('ticket-demo-411')), findsOneWidget);
     });
   });
+
+  test('sign-in links return to the page the user is on', () {
+    expect(signInReturnUrl(Uri.parse('http://localhost:5173/?code=abc#x')), 'http://localhost:5173/');
+    expect(signInReturnUrl(Uri.parse('https://saxenachirayu1.github.io/drishti/#access_token=1')),
+        'https://saxenachirayu1.github.io/drishti/');
+  });
 }

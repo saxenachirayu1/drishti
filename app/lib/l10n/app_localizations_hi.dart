@@ -429,7 +429,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get sendCode => 'मुझे साइन-इन कोड ईमेल करें';
 
   @override
-  String get codeSent => 'हमने आपको 6 अंकों का कोड ईमेल किया है।';
+  String get codeSent => 'अपना ईमेल देखें: 6 अंकों का कोड यहाँ लिखें, या इसी डिवाइस पर साइन-इन लिंक खोलें।';
 
   @override
   String get code => 'कोड';

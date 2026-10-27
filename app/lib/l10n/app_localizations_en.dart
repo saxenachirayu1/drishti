@@ -430,7 +430,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sendCode => 'Email me a sign-in code';
 
   @override
-  String get codeSent => 'We emailed you a 6-digit code.';
+  String get codeSent => 'Check your email: type the 6-digit code here, or open the sign-in link on this device.';
 
   @override
   String get code => 'Code';

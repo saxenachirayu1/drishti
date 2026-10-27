@@ -150,7 +150,7 @@
   "roleBoard": "Pollution control board",
   "roleAdmin": "Admin",
   "sendCode": "Email me a sign-in code",
-  "codeSent": "We emailed you a 6-digit code.",
+  "codeSent": "Check your email: type the 6-digit code here, or open the sign-in link on this device.",
   "code": "Code",
   "verify": "Verify and sign in",
   "usePassword": "Use a password instead",
