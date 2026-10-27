@@ -25,9 +25,26 @@ enabled = true
 
 [auth]
 enabled = true
-site_url = "http://localhost:3000"
+# Where sign-in links land. The app asks for its own address (emailRedirectTo);
+# Supabase only honours addresses on this list, otherwise it uses site_url.
+site_url = "https://saxenachirayu1.github.io/drishti/"
+additional_redirect_urls = [
+  "https://saxenachirayu1.github.io/drishti/**",
+  "http://localhost:5173/**",
+  "http://127.0.0.1:5173/**",
+  "http://localhost:8080/**",
+]
 
 [auth.email]
 enable_signup = true
 enable_confirmations = false
 otp_length = 6
+
+# The sign-in emails carry both the 6-digit code and the link, so either works.
+[auth.email.template.magic_link]
+subject = "Your Drishti sign-in code"
+content_path = "./supabase/templates/sign_in.html"
+
+[auth.email.template.confirmation]
+subject = "Your Drishti sign-in code"
+content_path = "./supabase/templates/sign_in.html"

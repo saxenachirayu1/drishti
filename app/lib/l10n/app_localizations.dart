@@ -923,7 +923,7 @@ abstract class AppLocalizations {
   /// No description provided for @codeSent.
   ///
   /// In en, this message translates to:
-  /// **'We emailed you a 6-digit code.'**
+  /// **'Check your email: type the 6-digit code here, or open the sign-in link on this device.'**
   String get codeSent;
 
   /// No description provided for @code.

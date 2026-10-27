@@ -72,3 +72,16 @@ The timeline is `report_updates`: `received` (automatic), then `assigned`, `sche
 | `impact_summary(p_city_id)` | anyone | counts for the impact page |
 
 `report_map` now also returns `ticket`, `category`, `department`, `ward_no`, `ward_name`, `locality`, `stage`, `reply_due_at`, `first_reply_at`, `resolved_at` and `overdue`. Department photos go to the private `report-updates` bucket under `<report id>/`, readable by staff and the reporter. `report_updates` is in the realtime publication, so the reporter's timeline updates live.
+
+## Sign-in emails
+
+The app signs people in with an email that carries **both a 6-digit code and a link**. The link returns to the page the user asked from, which only works if that address is allowed. These settings are in `config.toml` and `templates/sign_in.html`; apply them with `supabase config push`, or by hand in the dashboard:
+
+1. **Authentication → URL Configuration**
+   - **Site URL:** `https://saxenachirayu1.github.io/drishti/`
+   - **Redirect URLs:** `https://saxenachirayu1.github.io/drishti/**`, `http://localhost:5173/**`, `http://127.0.0.1:5173/**`, `http://localhost:8080/**`
+2. **Authentication → Emails → Magic Link** and **Confirm signup**
+   - **Subject:** `Your Drishti sign-in code`
+   - **Body:** paste `templates/sign_in.html`. It must contain `{{ .Token }}` for the code to appear.
+
+Without these, the email has only a link, and the link goes to `localhost:3000`, which is not running ("not found").
